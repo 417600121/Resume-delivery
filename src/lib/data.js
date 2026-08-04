@@ -34,6 +34,15 @@ export function uid() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export function normalizeStatusOptions(items) {
+  const values = Array.isArray(items)
+    ? [...new Set(items.map((item) => String(item || '').trim()).filter(Boolean))]
+    : [];
+  if (!values.length) return clone(DEFAULT_OPTIONS.status);
+  if (!values.includes('已拒绝')) values.push('已拒绝');
+  return values;
+}
+
 function normalizePersonalInfoItems(items) {
   if (!Array.isArray(items)) return [];
   return items
@@ -147,7 +156,7 @@ export function loadState() {
       return {
         records: saved.records.map((record) => ({ ...record, id: record.id || uid() })),
         options: {
-          status: Array.isArray(saved.options?.status) ? saved.options.status : clone(DEFAULT_OPTIONS.status),
+          status: normalizeStatusOptions(saved.options?.status),
           source: Array.isArray(saved.options?.source) ? saved.options.source : clone(DEFAULT_OPTIONS.source),
           priority: Array.isArray(saved.options?.priority) ? saved.options.priority : clone(DEFAULT_OPTIONS.priority),
         },

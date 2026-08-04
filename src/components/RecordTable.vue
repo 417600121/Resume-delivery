@@ -48,6 +48,7 @@ const recordRows = computed(() => props.records.map((record) => {
         status: currentNode.status,
         label: currentNode.round || currentNode.status,
         date: currentNode.at,
+        note: currentNode.note,
         link: currentNode.link,
       }
     : legacyInterview
@@ -55,6 +56,7 @@ const recordRows = computed(() => props.records.map((record) => {
           status: '面试中',
           label: legacyInterview.round || '面试',
           date: legacyInterview.date,
+          note: '',
           link: legacyInterview.link,
         }
       : null;
@@ -182,6 +184,7 @@ function statusCountdown(value) {
               >
                 {{ statusCountdown(statusEvent.date) }}
               </div>
+              <div v-if="statusEvent.note" class="status-event-note">{{ statusEvent.note }}</div>
             </template>
             <a
               v-if="isWebLink(actionLink)"

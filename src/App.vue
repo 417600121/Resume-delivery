@@ -27,6 +27,7 @@ import {
   loadState,
   normalizeHistory,
   normalizePersonalInfo,
+  normalizeStatusOptions,
   nowLocal,
   personalInfoItemCount,
   saveState,
@@ -290,7 +291,9 @@ function saveMarkdown(content) {
 }
 
 function saveOptions(nextOptions) {
-  Object.assign(options, clone(nextOptions));
+  const normalized = clone(nextOptions);
+  normalized.status = normalizeStatusOptions(normalized.status);
+  Object.assign(options, normalized);
   optionsModalOpen.value = false;
   showToast('选项已保存');
 }
@@ -377,6 +380,7 @@ function normalizeImportedOptions(importedOptions) {
       .filter(Boolean))];
     if (values.length) next[key] = values;
   });
+  if (next.status) next.status = normalizeStatusOptions(next.status);
   return next;
 }
 

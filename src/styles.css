@@ -147,6 +147,7 @@ tbody tr:hover { background: #fbfdff; }
 .status-event-countdown { margin-top: 2px; font-size: 13px; font-weight: 800; line-height: 1.35; }
 .status-event-countdown.upcoming { color: #b05d2f; }
 .status-event-countdown.past { color: var(--muted); font-weight: 700; }
+.status-event-note { margin-top: 5px; color: #53697f; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .interview-open-button { min-height: 38px; margin-top: 7px; padding: 8px 12px; border-color: #b8cada; color: #245f8e; white-space: nowrap; }
 .table-interview-button { min-height: 34px; font-size: 13px; }
 .actions-column { width: 190px; }

@@ -77,10 +77,18 @@ function changeStatus(node) {
 
 function linkFieldLabel(status) {
   return {
-    待投递: '投递链接 / 备注',
-    笔试中: '笔试链接 / 备注',
-    面试中: '面试链接 / 备注',
-  }[status] || '相关链接 / 备注';
+    待投递: '投递链接',
+    笔试中: '笔试链接',
+    面试中: '面试链接',
+  }[status] || '相关链接';
+}
+
+function linkFieldPlaceholder(status) {
+  return {
+    待投递: '粘贴投递链接',
+    笔试中: '粘贴笔试链接',
+    面试中: '粘贴面试链接',
+  }[status] || '粘贴相关链接';
 }
 
 function linkButtonLabel(status) {
@@ -157,12 +165,16 @@ function submit() {
                 </div>
                 <div class="field timeline-note">
                   <label>节点备注</label>
-                  <input v-model.trim="node.note" placeholder="例如：收到笔试通知" />
+                  <textarea
+                    v-model.trim="node.note"
+                    rows="2"
+                    placeholder="可填写账号、密码、联系人、注意事项等文本"
+                  ></textarea>
                 </div>
                 <div class="field timeline-link">
                   <label>{{ linkFieldLabel(node.status) }}</label>
                   <div class="link-field">
-                    <input v-model.trim="node.link" placeholder="可填写链接或文字说明" />
+                    <input v-model.trim="node.link" :placeholder="linkFieldPlaceholder(node.status)" />
                     <a
                       v-if="isWebLink(node.link)"
                       class="button interview-open-button"
