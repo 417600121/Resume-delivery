@@ -184,7 +184,9 @@ function statusCountdown(value) {
               >
                 {{ statusCountdown(statusEvent.date) }}
               </div>
-              <div v-if="statusEvent.note" class="status-event-note">{{ statusEvent.note }}</div>
+              <div v-if="statusEvent.note" class="status-event-note" :title="statusEvent.note">
+                {{ statusEvent.note }}
+              </div>
             </template>
             <a
               v-if="isWebLink(actionLink)"
