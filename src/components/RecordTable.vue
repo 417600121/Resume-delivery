@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import {
   ChevronLeft,
   ChevronRight,
@@ -28,13 +28,19 @@ const props = defineProps({
 
 const emit = defineEmits(['add', 'edit', 'history', 'markdown', 'delete', 'page']);
 const clock = ref(Date.now());
+const noteTooltip = ref(null);
+const noteTooltipElement = ref(null);
 let clockTimer;
+let noteTooltipTimer;
 
 onMounted(() => {
   clockTimer = window.setInterval(() => { clock.value = Date.now(); }, 30_000);
 });
 
-onUnmounted(() => window.clearInterval(clockTimer));
+onUnmounted(() => {
+  window.clearInterval(clockTimer);
+  window.clearTimeout(noteTooltipTimer);
+});
 
 const recordRows = computed(() => props.records.map((record) => {
   const now = clock.value;
@@ -135,6 +141,40 @@ function statusCountdown(value) {
   ].filter(Boolean).join(' ');
   return target >= clock.value ? `还有 ${suffix}` : `已过去 ${suffix}`;
 }
+
+function showNoteTooltip(event, text) {
+  window.clearTimeout(noteTooltipTimer);
+  const anchor = event.currentTarget;
+  const anchorRect = anchor.getBoundingClientRect();
+  noteTooltip.value = { text, left: anchorRect.left, top: anchorRect.bottom + 8 };
+
+  nextTick(() => {
+    if (!noteTooltip.value || !noteTooltipElement.value) return;
+    const tooltipRect = noteTooltipElement.value.getBoundingClientRect();
+    const pagePadding = 12;
+    const gap = 8;
+    const left = Math.min(
+      window.innerWidth - tooltipRect.width - pagePadding,
+      Math.max(pagePadding, anchorRect.left + (anchorRect.width - tooltipRect.width) / 2),
+    );
+    const below = anchorRect.bottom + gap;
+    const top = below + tooltipRect.height <= window.innerHeight - pagePadding
+      ? below
+      : Math.max(pagePadding, anchorRect.top - tooltipRect.height - gap);
+    noteTooltip.value = { text, left, top };
+  });
+}
+
+function keepNoteTooltip() {
+  window.clearTimeout(noteTooltipTimer);
+}
+
+function hideNoteTooltip() {
+  window.clearTimeout(noteTooltipTimer);
+  noteTooltipTimer = window.setTimeout(() => {
+    noteTooltip.value = null;
+  }, 120);
+}
 </script>
 
 <template>
@@ -184,7 +224,16 @@ function statusCountdown(value) {
               >
                 {{ statusCountdown(statusEvent.date) }}
               </div>
-              <div v-if="statusEvent.note" class="status-event-note" :title="statusEvent.note">
+              <div
+                v-if="statusEvent.note"
+                class="status-event-note"
+                tabindex="0"
+                aria-label="查看完整节点备注"
+                @mouseenter="showNoteTooltip($event, statusEvent.note)"
+                @mouseleave="hideNoteTooltip"
+                @focus="showNoteTooltip($event, statusEvent.note)"
+                @blur="hideNoteTooltip"
+              >
                 {{ statusEvent.note }}
               </div>
             </template>
@@ -238,4 +287,18 @@ function statusCountdown(value) {
       </button>
     </div>
   </footer>
+
+  <Teleport to="body">
+    <div
+      v-if="noteTooltip"
+      ref="noteTooltipElement"
+      class="status-note-tooltip"
+      role="tooltip"
+      :style="{ left: `${noteTooltip.left}px`, top: `${noteTooltip.top}px` }"
+      @mouseenter="keepNoteTooltip"
+      @mouseleave="hideNoteTooltip"
+    >
+      {{ noteTooltip.text }}
+    </div>
+  </Teleport>
 </template>
