@@ -138,7 +138,7 @@ tbody tr:hover { background: #fbfdff; }
 .tag.follow { background: #ffeadf; color: #9c4c2c; }
 .tag.offer { background: #deefe7; color: #237052; }
 .tag.joined { background: #e1efdc; color: #416e31; }
-.tag.reject { background: #f8e3e3; color: #a14848; }
+.tag.reject { border: 1px solid #f3b6b6; background: #fde7e7; color: #b42318; }
 .priority-high { color: var(--red); font-weight: 800; }
 .priority-mid { color: var(--yellow); font-weight: 800; }
 .priority-low { color: var(--muted); }

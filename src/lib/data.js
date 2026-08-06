@@ -201,6 +201,9 @@ export function isWebLink(value) {
 }
 
 export function statusClass(status) {
+  const normalizedStatus = String(status || '').trim();
+  if (normalizedStatus.includes('拒绝')) return 'reject';
+
   return {
     待投递: 'wait',
     已投递: 'sent',
@@ -209,7 +212,6 @@ export function statusClass(status) {
     待跟进: 'follow',
     已拿Offer: 'offer',
     已入职: 'joined',
-    已拒绝: 'reject',
     暂不考虑: 'wait',
-  }[status] || 'sent';
+  }[normalizedStatus] || 'sent';
 }
