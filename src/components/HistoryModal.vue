@@ -135,9 +135,6 @@ function submit() {
         <div class="timeline-editor">
           <div class="timeline-toolbar">
             <span>共 {{ draft.nodes.length }} 个状态节点</span>
-            <button type="button" class="button compact" @click="addNode">
-              <Plus :size="16" />添加节点
-            </button>
           </div>
 
           <div class="timeline-list">
@@ -201,9 +198,14 @@ function submit() {
           </div>
         </div>
 
-        <footer class="modal-actions">
-          <button type="button" class="button" @click="emit('close')">取消</button>
-          <button type="button" class="button primary" @click="submit">保存时间线</button>
+        <footer class="modal-actions history-modal-actions">
+          <button type="button" class="button" @click="addNode">
+            <Plus :size="16" />添加节点
+          </button>
+          <div class="modal-actions-group">
+            <button type="button" class="button" @click="emit('close')">取消</button>
+            <button type="button" class="button primary" @click="submit">保存时间线</button>
+          </div>
         </footer>
       </section>
     </div>

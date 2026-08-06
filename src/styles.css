@@ -188,6 +188,8 @@ tbody tr:hover { background: #fbfdff; }
 .field .record-markdown-input { min-height: 112px; line-height: 1.55; }
 .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 .modal-actions { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: flex-end; gap: 8px; padding: 13px 21px; border-top: 1px solid var(--line); background: #fff; }
+.history-modal-actions { justify-content: space-between; }
+.modal-actions-group { display: flex; gap: 8px; }
 .json-export-options { padding: 20px 21px; }
 .json-export-checkbox { min-height: 42px; display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; }
 .json-export-checkbox input { width: 18px; height: 18px; margin: 0; accent-color: var(--coral); }
