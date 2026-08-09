@@ -546,9 +546,9 @@ function deleteItem(group, item) {
             </template>
 
             <template v-else>
-              <button type="button" class="personal-info-copy-target" title="点击复制" @click="copyItem(item)">
+              <div class="personal-info-copy-target">
                 <span>{{ item.text }}</span>
-              </button>
+              </div>
               <div class="personal-info-actions">
                 <button type="button" class="icon-button" title="复制" aria-label="复制此条信息" @click="copyItem(item)">
                   <Copy :size="16" />
