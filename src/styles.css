@@ -106,9 +106,8 @@ input, select, textarea { letter-spacing: 0; }
 .personal-info-row.drop-before { box-shadow: inset 0 3px 0 var(--coral); }
 .personal-info-row.drop-after { box-shadow: inset 0 -3px 0 var(--coral); }
 .personal-info-index { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; background: #edf3f7; color: #5d7187; font-size: 13px; font-weight: 800; }
-.personal-info-copy-target { width: 100%; min-height: 42px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); text-align: left; font-size: 14px; line-height: 1.55; }
+.personal-info-copy-target { width: 100%; min-height: 42px; display: block; padding: 8px 10px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); text-align: left; font-size: 14px; line-height: 1.55; }
 .personal-info-copy-target span { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.personal-info-copy-target svg { flex: 0 0 auto; color: #7990a7; }
 .personal-info-copy-target:hover { border-color: #cbd9e5; background: #f4f8fb; }
 .personal-info-actions { display: flex; align-items: center; gap: 5px; }
 .personal-info-actions .icon-button { width: 32px; height: 32px; }

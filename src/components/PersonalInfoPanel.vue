@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import {
   ArrowDown,
   ArrowUp,
@@ -49,9 +49,22 @@ const selectedItems = computed(() => props.groups
   .filter((item) => selectedIds.value.has(item.id)));
 const selectedCount = computed(() => selectedItems.value.length);
 
+onMounted(() => {
+  document.addEventListener('pointerdown', clearSelectionFromOutsideBlank);
+});
+
 onUnmounted(() => {
+  document.removeEventListener('pointerdown', clearSelectionFromOutsideBlank);
   document.body.classList.remove('personal-info-dragging', 'personal-info-selecting');
 });
+
+function clearSelectionFromOutsideBlank(event) {
+  if (!selectedIds.value.size) return;
+  const target = event.target;
+  if (!(target instanceof Element) || panelElement.value?.contains(target)) return;
+  if (target.closest('button, input, textarea, select, a, [contenteditable="true"]')) return;
+  selectedIds.value = new Set();
+}
 
 function isExpanded(key) {
   return expandedKeys.value.has(key);
@@ -535,9 +548,11 @@ function deleteItem(group, item) {
             <template v-else>
               <button type="button" class="personal-info-copy-target" title="点击复制" @click="copyItem(item)">
                 <span>{{ item.text }}</span>
-                <Copy :size="16" />
               </button>
               <div class="personal-info-actions">
+                <button type="button" class="icon-button" title="复制" aria-label="复制此条信息" @click="copyItem(item)">
+                  <Copy :size="16" />
+                </button>
                 <button type="button" class="icon-button" title="编辑" @click="startEdit(item)">
                   <Pencil :size="16" />
                 </button>
