@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onUnmounted, reactive, ref } from 'vue';
 import {
   ArrowDown,
   ArrowUp,
@@ -20,6 +20,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:groups', 'toast']);
+const panelElement = ref(null);
 const drafts = reactive({});
 const groupNameDraft = ref('');
 const expandedKeys = ref(new Set([props.groups[0]?.key || 'personal']));
@@ -32,10 +33,25 @@ const draggingGroupKey = ref('');
 const dropTargetGroupKey = ref('');
 const dropTargetId = ref('');
 const dropPosition = ref('before');
+const selectedIds = ref(new Set());
+const selectionBox = ref(null);
 let activePointerId = null;
+let selectionPointerId = null;
+let selectionStart = null;
+let selectionStartItemId = '';
+let selectionBaseIds = new Set();
+let selectionMoved = false;
 
 const totalItems = computed(() => props.groups
   .reduce((total, group) => total + group.items.length, 0));
+const selectedItems = computed(() => props.groups
+  .flatMap((group) => group.items)
+  .filter((item) => selectedIds.value.has(item.id)));
+const selectedCount = computed(() => selectedItems.value.length);
+
+onUnmounted(() => {
+  document.body.classList.remove('personal-info-dragging', 'personal-info-selecting');
+});
 
 function isExpanded(key) {
   return expandedKeys.value.has(key);
@@ -102,39 +118,148 @@ function updateGroupItems(groupKey, items) {
 }
 
 function addItems(group) {
-  const values = String(drafts[group.key] || '')
-    .split(/\r?\n/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  if (!values.length) return;
+  const text = String(drafts[group.key] || '').trim();
+  if (!text) return;
 
   updateGroupItems(group.key, [
     ...group.items,
-    ...values.map((text) => ({ id: uid(), text })),
+    { id: uid(), text },
   ]);
   drafts[group.key] = '';
-  emit('toast', `已向${group.title}添加 ${values.length} 条信息`);
+  emit('toast', `已向${group.title}添加 1 条信息`);
+}
+
+async function writeToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const input = document.createElement('textarea');
+  input.value = text;
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand('copy');
+  input.remove();
 }
 
 async function copyItem(item) {
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(item.text);
-    } else {
-      const input = document.createElement('textarea');
-      input.value = item.text;
-      input.style.position = 'fixed';
-      input.style.opacity = '0';
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      input.remove();
-    }
+    await writeToClipboard(item.text);
     emit('toast', '已复制到剪贴板');
   } catch (error) {
     console.warn('无法复制个人信息', error);
     emit('toast', '复制失败');
   }
+}
+
+async function copySelected() {
+  if (!selectedItems.value.length) return;
+  try {
+    await writeToClipboard(selectedItems.value.map((item) => item.text).join('\n\n'));
+    emit('toast', `已复制 ${selectedItems.value.length} 条信息`);
+  } catch (error) {
+    console.warn('无法复制所选个人信息', error);
+    emit('toast', '复制失败');
+  }
+}
+
+function startBoxSelection(event) {
+  if (event.pointerType && event.pointerType !== 'mouse') return;
+  if (event.button !== 0) return;
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (target.closest('button, input, textarea, select, a')) return;
+
+  selectionPointerId = event.pointerId;
+  selectionStart = { x: event.clientX, y: event.clientY };
+  selectionStartItemId = target.closest('.personal-info-row')?.dataset.itemId || '';
+  selectionBaseIds = event.ctrlKey || event.metaKey
+    ? new Set(selectedIds.value)
+    : new Set();
+  selectionMoved = false;
+  selectionBox.value = {
+    left: event.clientX,
+    top: event.clientY,
+    width: 0,
+    height: 0,
+  };
+  panelElement.value?.setPointerCapture?.(event.pointerId);
+  document.body.classList.add('personal-info-selecting');
+  event.preventDefault();
+}
+
+function updateBoxSelection(event) {
+  if (selectionPointerId === null || event.pointerId !== selectionPointerId || !selectionStart) return;
+  const deltaX = event.clientX - selectionStart.x;
+  const deltaY = event.clientY - selectionStart.y;
+  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) selectionMoved = true;
+
+  const bounds = {
+    left: Math.min(selectionStart.x, event.clientX),
+    top: Math.min(selectionStart.y, event.clientY),
+    right: Math.max(selectionStart.x, event.clientX),
+    bottom: Math.max(selectionStart.y, event.clientY),
+  };
+  selectionBox.value = {
+    left: bounds.left,
+    top: bounds.top,
+    width: bounds.right - bounds.left,
+    height: bounds.bottom - bounds.top,
+  };
+
+  if (!selectionMoved) return;
+  const next = new Set(selectionBaseIds);
+  panelElement.value?.querySelectorAll('.personal-info-row').forEach((row) => {
+    const rowBounds = row.getBoundingClientRect();
+    const intersects = rowBounds.width > 0
+      && rowBounds.height > 0
+      && rowBounds.right >= bounds.left
+      && rowBounds.left <= bounds.right
+      && rowBounds.bottom >= bounds.top
+      && rowBounds.top <= bounds.bottom;
+    if (intersects) next.add(row.dataset.itemId);
+  });
+  selectedIds.value = next;
+}
+
+function resetBoxSelection(event) {
+  if (panelElement.value?.hasPointerCapture?.(event.pointerId)) {
+    panelElement.value.releasePointerCapture(event.pointerId);
+  }
+  selectionPointerId = null;
+  selectionStart = null;
+  selectionStartItemId = '';
+  selectionBaseIds = new Set();
+  selectionMoved = false;
+  selectionBox.value = null;
+  document.body.classList.remove('personal-info-selecting');
+}
+
+function finishBoxSelection(event) {
+  if (selectionPointerId === null || event.pointerId !== selectionPointerId) return;
+  if (!selectionMoved) {
+    if (selectionStartItemId) {
+      const next = new Set(selectionBaseIds);
+      if ((event.ctrlKey || event.metaKey) && next.has(selectionStartItemId)) {
+        next.delete(selectionStartItemId);
+      } else {
+        next.add(selectionStartItemId);
+      }
+      selectedIds.value = next;
+    } else if (!(event.ctrlKey || event.metaKey)) {
+      selectedIds.value = new Set();
+    }
+  }
+  resetBoxSelection(event);
+}
+
+function cancelBoxSelection(event) {
+  if (selectionPointerId === null || event.pointerId !== selectionPointerId) return;
+  selectedIds.value = new Set(selectionBaseIds);
+  resetBoxSelection(event);
 }
 
 function startEdit(item) {
@@ -247,24 +372,43 @@ function deleteItem(group, item) {
   const preview = item.text.length > 24 ? `${item.text.slice(0, 24)}...` : item.text;
   if (!window.confirm(`确定删除“${preview}”吗？`)) return;
   updateGroupItems(group.key, group.items.filter((current) => current.id !== item.id));
+  if (selectedIds.value.has(item.id)) {
+    const nextSelected = new Set(selectedIds.value);
+    nextSelected.delete(item.id);
+    selectedIds.value = nextSelected;
+  }
   if (editingId.value === item.id) cancelEdit();
   emit('toast', '信息已删除');
 }
 </script>
 
 <template>
-  <section class="personal-info-panel">
+  <section
+    ref="panelElement"
+    class="personal-info-panel"
+    :class="{ 'is-box-selecting': selectionBox }"
+    @pointerdown="startBoxSelection"
+    @pointermove="updateBoxSelection"
+    @pointerup="finishBoxSelection"
+    @pointercancel="cancelBoxSelection"
+  >
     <div class="personal-info-overview">
       <div class="personal-info-overview-counts">
         <span>{{ groups.length }} 个分组</span>
         <span>{{ totalItems }} 条信息</span>
+        <span v-if="selectedCount" class="personal-info-selected-count">已选择 {{ selectedCount }} 条</span>
       </div>
-      <form class="personal-info-group-add" @submit.prevent="addGroup">
-        <input v-model="groupNameDraft" aria-label="新分组名称" placeholder="新分组名称" />
-        <button type="submit" class="button compact" :disabled="!groupNameDraft.trim()">
-          <FolderPlus :size="17" />新增分组
+      <div class="personal-info-overview-actions">
+        <form class="personal-info-group-add" @submit.prevent="addGroup">
+          <input v-model="groupNameDraft" aria-label="新分组名称" placeholder="新分组名称" />
+          <button type="submit" class="button compact" :disabled="!groupNameDraft.trim()">
+            <FolderPlus :size="17" />新增分组
+          </button>
+        </form>
+        <button type="button" class="button compact personal-info-selection-copy" :disabled="!selectedCount" @click="copySelected">
+          <Copy :size="17" />{{ selectedCount ? `复制已选 ${selectedCount}` : '复制已选' }}
         </button>
-      </form>
+      </div>
     </div>
 
     <section
@@ -345,9 +489,9 @@ function deleteItem(group, item) {
         <form class="personal-info-add" @submit.prevent="addItems(group)">
           <textarea
             v-model="drafts[group.key]"
-            rows="2"
+            rows="4"
             :aria-label="`新增${group.title}`"
-            :placeholder="`输入${group.title}，每行一条`"
+            :placeholder="`输入${group.title}，支持多行文本`"
             @keydown.ctrl.enter.prevent="addItems(group)"
           ></textarea>
           <button type="submit" class="button primary" :disabled="!String(drafts[group.key] || '').trim()">
@@ -362,6 +506,7 @@ function deleteItem(group, item) {
             class="personal-info-row"
             :class="{
               'is-dragging': draggingId === item.id,
+              'is-selected': selectedIds.has(item.id),
               'drop-before': dropTargetGroupKey === group.key && dropTargetId === item.id && dropPosition === 'before',
               'drop-after': dropTargetGroupKey === group.key && dropTargetId === item.id && dropPosition === 'after',
             }"
@@ -421,5 +566,18 @@ function deleteItem(group, item) {
         <div v-else class="personal-info-empty">暂无{{ group.title }}</div>
       </div>
     </section>
+
+    <Teleport to="body">
+      <div
+        v-if="selectionBox"
+        class="personal-info-selection-box"
+        :style="{
+          left: `${selectionBox.left}px`,
+          top: `${selectionBox.top}px`,
+          width: `${selectionBox.width}px`,
+          height: `${selectionBox.height}px`,
+        }"
+      ></div>
+    </Teleport>
   </section>
 </template>
