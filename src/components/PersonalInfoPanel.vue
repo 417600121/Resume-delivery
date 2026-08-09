@@ -179,6 +179,21 @@ async function copySelected() {
   }
 }
 
+async function copyOnDoubleClick(item, event) {
+  const target = event.target;
+  if (target instanceof Element && target.closest('button, input, textarea, select, a')) return;
+  const items = selectedIds.value.size > 1 && selectedIds.value.has(item.id)
+    ? selectedItems.value
+    : [item];
+  try {
+    await writeToClipboard(items.map((current) => current.text).join('\n\n'));
+    emit('toast', items.length > 1 ? `已复制 ${items.length} 条信息` : '已复制到剪贴板');
+  } catch (error) {
+    console.warn('无法通过双击复制个人信息', error);
+    emit('toast', '复制失败');
+  }
+}
+
 function startBoxSelection(event) {
   if (event.pointerType && event.pointerType !== 'mouse') return;
   if (event.button !== 0) return;
@@ -255,13 +270,14 @@ function finishBoxSelection(event) {
   if (selectionPointerId === null || event.pointerId !== selectionPointerId) return;
   if (!selectionMoved) {
     if (selectionStartItemId) {
-      const next = new Set(selectionBaseIds);
-      if ((event.ctrlKey || event.metaKey) && next.has(selectionStartItemId)) {
-        next.delete(selectionStartItemId);
-      } else {
-        next.add(selectionStartItemId);
+      if (event.ctrlKey || event.metaKey) {
+        const next = new Set(selectionBaseIds);
+        if (next.has(selectionStartItemId)) next.delete(selectionStartItemId);
+        else next.add(selectionStartItemId);
+        selectedIds.value = next;
+      } else if (!selectedIds.value.has(selectionStartItemId)) {
+        selectedIds.value = new Set([selectionStartItemId]);
       }
-      selectedIds.value = next;
     } else if (!(event.ctrlKey || event.metaKey)) {
       selectedIds.value = new Set();
     }
@@ -525,6 +541,7 @@ function deleteItem(group, item) {
             }"
             :data-item-id="item.id"
             :data-group-key="group.key"
+            @dblclick="copyOnDoubleClick(item, $event)"
           >
             <span class="personal-info-index">{{ index + 1 }}</span>
 
