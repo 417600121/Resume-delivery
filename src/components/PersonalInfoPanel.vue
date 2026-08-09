@@ -41,6 +41,9 @@ let selectionStart = null;
 let selectionStartItemId = '';
 let selectionBaseIds = new Set();
 let selectionMoved = false;
+let lastClickItemId = '';
+let lastClickAt = 0;
+const doubleClickWindow = 550;
 
 const totalItems = computed(() => props.groups
   .reduce((total, group) => total + group.items.length, 0));
@@ -144,8 +147,12 @@ function addItems(group) {
 
 async function writeToClipboard(text) {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      console.warn('剪贴板 API 不可用，尝试兼容复制', error);
+    }
   }
 
   const input = document.createElement('textarea');
@@ -153,9 +160,11 @@ async function writeToClipboard(text) {
   input.style.position = 'fixed';
   input.style.opacity = '0';
   document.body.appendChild(input);
+  input.focus();
   input.select();
-  document.execCommand('copy');
+  const copied = document.execCommand('copy');
   input.remove();
+  if (!copied) throw new Error('浏览器未允许复制到剪贴板');
 }
 
 async function copyItem(item) {
@@ -179,9 +188,7 @@ async function copySelected() {
   }
 }
 
-async function copyOnDoubleClick(item, event) {
-  const target = event.target;
-  if (target instanceof Element && target.closest('button, input, textarea, select, a')) return;
+async function copyOnDoubleClick(item) {
   const items = selectedIds.value.size > 1 && selectedIds.value.has(item.id)
     ? selectedItems.value
     : [item];
@@ -194,12 +201,34 @@ async function copyOnDoubleClick(item, event) {
   }
 }
 
+function resetDoubleClickTracking() {
+  lastClickItemId = '';
+  lastClickAt = 0;
+}
+
+function handleItemClick(itemId) {
+  const clickedAt = Date.now();
+  if (lastClickItemId === itemId && clickedAt - lastClickAt <= doubleClickWindow) {
+    resetDoubleClickTracking();
+    const item = props.groups
+      .flatMap((group) => group.items)
+      .find((current) => current.id === itemId);
+    if (item) void copyOnDoubleClick(item);
+    return;
+  }
+  lastClickItemId = itemId;
+  lastClickAt = clickedAt;
+}
+
 function startBoxSelection(event) {
   if (event.pointerType && event.pointerType !== 'mouse') return;
   if (event.button !== 0) return;
   const target = event.target;
   if (!(target instanceof Element)) return;
-  if (target.closest('button, input, textarea, select, a')) return;
+  if (target.closest('button, input, textarea, select, a')) {
+    resetDoubleClickTracking();
+    return;
+  }
 
   selectionPointerId = event.pointerId;
   selectionStart = { x: event.clientX, y: event.clientY };
@@ -278,9 +307,13 @@ function finishBoxSelection(event) {
       } else if (!selectedIds.value.has(selectionStartItemId)) {
         selectedIds.value = new Set([selectionStartItemId]);
       }
+      if (!(event.ctrlKey || event.metaKey)) handleItemClick(selectionStartItemId);
     } else if (!(event.ctrlKey || event.metaKey)) {
       selectedIds.value = new Set();
+      resetDoubleClickTracking();
     }
+  } else {
+    resetDoubleClickTracking();
   }
   resetBoxSelection(event);
 }
@@ -541,7 +574,6 @@ function deleteItem(group, item) {
             }"
             :data-item-id="item.id"
             :data-group-key="group.key"
-            @dblclick="copyOnDoubleClick(item, $event)"
           >
             <span class="personal-info-index">{{ index + 1 }}</span>
 
