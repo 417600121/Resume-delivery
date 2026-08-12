@@ -204,7 +204,7 @@ tbody tr:hover { background: #fbfdff; }
 .history-input > input { padding-right: 38px; }
 .field-chevron { position: absolute; top: 3px; right: 3px; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #75879a; }
 .field-chevron:hover { background: #edf3f7; color: var(--navy); }
-.suggestion-menu { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 10; overflow: hidden; border: 1px solid #cfdbe6; border-radius: 6px; background: #fff; box-shadow: 0 12px 25px rgba(25, 48, 72, 0.14); }
+.suggestion-menu { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 10; max-height: 260px; overflow-x: hidden; overflow-y: auto; border: 1px solid #cfdbe6; border-radius: 6px; background: #fff; box-shadow: 0 12px 25px rgba(25, 48, 72, 0.14); }
 .suggestion-item { width: 100%; min-height: 36px; display: block; padding: 8px 10px; border: 0; border-bottom: 1px solid #edf2f6; background: #fff; color: var(--ink); text-align: left; }
 .suggestion-item:last-child { border-bottom: 0; }
 .suggestion-item:hover { background: #f1f6fa; }

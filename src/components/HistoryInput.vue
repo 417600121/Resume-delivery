@@ -11,14 +11,31 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 const open = ref(false);
+const displayMode = ref('filtered');
 const input = ref(null);
 
 const matches = computed(() => {
+  if (displayMode.value === 'all') return props.suggestions;
   const query = props.modelValue.trim().toLowerCase();
   return props.suggestions
-    .filter((item) => !query || item.toLowerCase().includes(query))
+    .filter((item) => !query || item.toLowerCase().startsWith(query))
     .slice(0, 8);
 });
+
+function handleInput(event) {
+  emit('update:modelValue', event.target.value);
+  displayMode.value = 'filtered';
+  open.value = true;
+}
+
+function toggleAllOptions() {
+  if (open.value && displayMode.value === 'all') {
+    open.value = false;
+    return;
+  }
+  displayMode.value = 'all';
+  open.value = true;
+}
 
 function select(value) {
   emit('update:modelValue', value);
@@ -39,12 +56,18 @@ function closeLater() {
       :placeholder="placeholder"
       :required="required"
       autocomplete="off"
-      @input="emit('update:modelValue', $event.target.value)"
-      @focus="open = true"
+      @input="handleInput"
       @blur="closeLater"
       @keydown.esc="open = false"
     />
-    <button type="button" class="field-chevron" title="显示历史选项" @mousedown.prevent="open = !open">
+    <button
+      type="button"
+      class="field-chevron"
+      title="显示全部选项"
+      aria-label="显示全部选项"
+      :aria-expanded="open"
+      @mousedown.prevent="toggleAllOptions"
+    >
       <ChevronDown :size="16" />
     </button>
     <div v-if="open && matches.length" class="suggestion-menu">
