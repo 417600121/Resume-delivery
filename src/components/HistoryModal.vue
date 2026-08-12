@@ -7,6 +7,7 @@ import {
   formatDateTime,
   isWebLink,
   nowLocal,
+  statusClass,
   uid,
 } from '../lib/data.js';
 
@@ -18,18 +19,25 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save']);
 const draft = reactive({ nodes: [] });
-const modalElement = ref(null);
+const selectedNodeId = ref('');
 
 const summary = computed(() => {
   if (!props.record) return '';
   return [props.record.company, props.record.position].filter(Boolean).join(' · ');
 });
+const selectedNode = computed(() => (
+  draft.nodes.find((node) => node.id === selectedNodeId.value) || draft.nodes.at(-1) || null
+));
+const selectedNodeIndex = computed(() => (
+  selectedNode.value ? draft.nodes.findIndex((node) => node.id === selectedNode.value.id) : -1
+));
 
 watch(
   () => props.open,
   (open) => {
     if (!open) return;
-    draft.nodes = clone(props.record?.statusHistory || []);
+    draft.nodes = clone(props.record?.statusHistory || [])
+      .map((node) => ({ ...node, id: node.id || uid() }));
     if (!draft.nodes.length) {
       draft.nodes.push({
         id: uid(),
@@ -40,33 +48,34 @@ watch(
         link: '',
       });
     }
-    scrollToBottom();
+    selectedNodeId.value = draft.nodes.at(-1)?.id || '';
   },
   { immediate: true },
 );
 
 function addNode() {
-  draft.nodes.push({
+  const node = {
     id: uid(),
     status: draft.nodes.at(-1)?.status || props.options.status[0] || '已投递',
     at: nowLocal(),
     note: '',
     round: '',
     link: '',
-  });
-  scrollToBottom();
-}
-
-function scrollToBottom() {
+  };
+  draft.nodes.push(node);
+  selectedNodeId.value = node.id;
   nextTick(() => {
-    if (!modalElement.value) return;
-    modalElement.value.scrollTop = modalElement.value.scrollHeight;
+    document.querySelector(`[data-history-node-id="${node.id}"]`)?.scrollIntoView({ block: 'nearest' });
   });
 }
 
 function removeNode(index) {
   if (draft.nodes.length <= 1) return;
+  const removingSelectedNode = draft.nodes[index]?.id === selectedNodeId.value;
   draft.nodes.splice(index, 1);
+  if (removingSelectedNode) {
+    selectedNodeId.value = draft.nodes[Math.min(index, draft.nodes.length - 1)]?.id || '';
+  }
 }
 
 function changeStatus(node) {
@@ -123,7 +132,7 @@ function submit() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="modal-backdrop" @mousedown.self="emit('close')">
-      <section ref="modalElement" class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+      <section class="modal modal-wide modal-history" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
         <header class="modal-head">
           <div>
             <h3 id="history-modal-title">修改投递状态</h3>
@@ -132,76 +141,103 @@ function submit() {
           <button type="button" class="modal-close" title="关闭" @click="emit('close')"><X :size="20" /></button>
         </header>
 
-        <div class="timeline-editor">
-          <div class="timeline-toolbar">
-            <span>共 {{ draft.nodes.length }} 个状态节点</span>
-          </div>
+        <div class="history-workspace">
+          <aside class="history-node-sidebar">
+            <div class="history-node-sidebar-head">
+              <strong>状态节点</strong>
+              <span>{{ draft.nodes.length }} 个</span>
+            </div>
+            <div class="history-node-list" role="list">
+              <button
+                v-for="(node, index) in draft.nodes"
+                :key="node.id"
+                type="button"
+                class="history-node-item"
+                :class="{ active: selectedNodeId === node.id }"
+                :data-history-node-id="node.id"
+                :aria-current="selectedNodeId === node.id ? 'true' : undefined"
+                @click="selectedNodeId = node.id"
+              >
+                <span class="history-node-index">{{ index + 1 }}</span>
+                <span class="history-node-item-content">
+                  <span class="history-node-item-status">
+                    <span class="tag" :class="statusClass(node.status)">{{ node.status || '未设置状态' }}</span>
+                    <span v-if="node.status === '面试中' && node.round" class="history-node-round">{{ node.round }}</span>
+                  </span>
+                  <span class="history-node-time">{{ formatDateTime(node.at) }}</span>
+                  <span v-if="node.note" class="history-node-note-preview">{{ node.note }}</span>
+                </span>
+              </button>
+            </div>
+            <button type="button" class="button history-add-node" @click="addNode">
+              <Plus :size="16" />添加节点
+            </button>
+          </aside>
 
-          <div class="timeline-list">
-            <article v-for="(node, index) in draft.nodes" :key="node.id" class="timeline-node">
-              <div class="timeline-marker" aria-hidden="true">
-                <span>{{ index + 1 }}</span>
-              </div>
-              <div class="timeline-fields">
-                <div class="field">
-                  <label>状态</label>
-                  <select v-model="node.status" @change="changeStatus(node)">
-                    <option v-for="item in statusOptions(node)" :key="item" :value="item">{{ item }}</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>发生时间</label>
-                  <input v-model="node.at" type="datetime-local" step="900" />
-                </div>
-                <div v-if="node.status === '面试中'" class="field">
-                  <label>面试轮次</label>
-                  <select v-model="node.round">
-                    <option value="">选择轮次</option>
-                    <option v-for="round in INTERVIEW_ROUNDS" :key="round" :value="round">{{ round }}</option>
-                  </select>
-                </div>
-                <div class="field timeline-note">
-                  <label>节点备注</label>
-                  <textarea
-                    v-model.trim="node.note"
-                    rows="2"
-                    placeholder="可填写账号、密码、联系人、注意事项等文本"
-                  ></textarea>
-                </div>
-                <div class="field timeline-link">
-                  <label>{{ linkFieldLabel(node.status) }}</label>
-                  <div class="link-field">
-                    <input v-model.trim="node.link" :placeholder="linkFieldPlaceholder(node.status)" />
-                    <a
-                      v-if="isWebLink(node.link)"
-                      class="button interview-open-button"
-                      :href="node.link"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLink :size="17" />{{ linkButtonLabel(node.status) }}
-                    </a>
-                  </div>
-                </div>
+          <section v-if="selectedNode" class="history-node-detail">
+            <header class="history-node-detail-head">
+              <div>
+                <span>节点 {{ selectedNodeIndex + 1 }}</span>
+                <h4>{{ selectedNode.status || '未设置状态' }}<template v-if="selectedNode.status === '面试中' && selectedNode.round"> · {{ selectedNode.round }}</template></h4>
               </div>
               <button
                 type="button"
-                class="icon-button danger"
-                title="删除状态节点"
+                class="button history-delete-node"
+                title="删除当前状态节点"
                 :disabled="draft.nodes.length <= 1"
-                @click="removeNode(index)"
+                @click="removeNode(selectedNodeIndex)"
               >
-                <Trash2 :size="17" />
+                <Trash2 :size="16" />删除节点
               </button>
-              <div class="timeline-caption">{{ formatDateTime(node.at) }}</div>
-            </article>
-          </div>
+            </header>
+
+            <div class="history-detail-form">
+              <div class="field">
+                <label>状态</label>
+                <select v-model="selectedNode.status" @change="changeStatus(selectedNode)">
+                  <option v-for="item in statusOptions(selectedNode)" :key="item" :value="item">{{ item }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>发生时间</label>
+                <input v-model="selectedNode.at" type="datetime-local" step="900" />
+              </div>
+              <div v-if="selectedNode.status === '面试中'" class="field">
+                <label>面试轮次</label>
+                <select v-model="selectedNode.round">
+                  <option value="">选择轮次</option>
+                  <option v-for="round in INTERVIEW_ROUNDS" :key="round" :value="round">{{ round }}</option>
+                </select>
+              </div>
+              <div class="field history-detail-note">
+                <label>节点备注</label>
+                <textarea
+                  v-model.trim="selectedNode.note"
+                  rows="7"
+                  placeholder="可填写账号、密码、联系人、注意事项等文本"
+                ></textarea>
+              </div>
+              <div class="field history-detail-link">
+                <label>{{ linkFieldLabel(selectedNode.status) }}</label>
+                <div class="link-field">
+                  <input v-model.trim="selectedNode.link" :placeholder="linkFieldPlaceholder(selectedNode.status)" />
+                  <a
+                    v-if="isWebLink(selectedNode.link)"
+                    class="button interview-open-button"
+                    :href="selectedNode.link"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink :size="17" />{{ linkButtonLabel(selectedNode.status) }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
         <footer class="modal-actions history-modal-actions">
-          <button type="button" class="button" @click="addNode">
-            <Plus :size="16" />添加节点
-          </button>
+          <span>当前编辑节点 {{ selectedNodeIndex + 1 }} / {{ draft.nodes.length }}</span>
           <div class="modal-actions-group">
             <button type="button" class="button" @click="emit('close')">取消</button>
             <button type="button" class="button primary" @click="submit">保存时间线</button>
