@@ -17,7 +17,7 @@ import {
   normalizeHistory,
   statusClass,
 } from '../lib/data.js';
-import { firstMarkdownLink } from '../lib/markdown.js';
+import { firstMarkdownLink, renderMarkdown } from '../lib/markdown.js';
 
 const props = defineProps({
   records: { type: Array, default: () => [] },
@@ -30,8 +30,11 @@ const emit = defineEmits(['add', 'edit', 'history', 'markdown', 'delete', 'page'
 const clock = ref(Date.now());
 const noteTooltip = ref(null);
 const noteTooltipElement = ref(null);
+const recruitmentTooltip = ref(null);
+const recruitmentTooltipElement = ref(null);
 let clockTimer;
 let noteTooltipTimer;
+let recruitmentTooltipTimer;
 
 onMounted(() => {
   clockTimer = window.setInterval(() => { clock.value = Date.now(); }, 30_000);
@@ -40,6 +43,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.clearInterval(clockTimer);
   window.clearTimeout(noteTooltipTimer);
+  window.clearTimeout(recruitmentTooltipTimer);
 });
 
 const recordRows = computed(() => props.records.map((record) => {
@@ -119,6 +123,10 @@ function sourceLabel(record) {
     : record.source || '—';
 }
 
+function hasRecruitmentPreview(record) {
+  return record.source === '公司官网' && Boolean(record.link?.trim());
+}
+
 function priorityClass(value) {
   return { 高: 'priority-high', 中: 'priority-mid', 低: 'priority-low' }[value] || 'priority-low';
 }
@@ -144,13 +152,18 @@ function statusCountdown(value) {
 
 function showNoteTooltip(event, text) {
   window.clearTimeout(noteTooltipTimer);
+  window.clearTimeout(recruitmentTooltipTimer);
+  recruitmentTooltip.value = null;
   const anchor = event.currentTarget;
   const anchorRect = anchor.getBoundingClientRect();
   noteTooltip.value = { text, left: anchorRect.left, top: anchorRect.bottom + 8 };
+  positionTooltip(noteTooltip, noteTooltipElement, anchorRect);
+}
 
+function positionTooltip(tooltip, tooltipElement, anchorRect) {
   nextTick(() => {
-    if (!noteTooltip.value || !noteTooltipElement.value) return;
-    const tooltipRect = noteTooltipElement.value.getBoundingClientRect();
+    if (!tooltip.value || !tooltipElement.value) return;
+    const tooltipRect = tooltipElement.value.getBoundingClientRect();
     const pagePadding = 12;
     const gap = 8;
     const left = Math.min(
@@ -161,7 +174,7 @@ function showNoteTooltip(event, text) {
     const top = below + tooltipRect.height <= window.innerHeight - pagePadding
       ? below
       : Math.max(pagePadding, anchorRect.top - tooltipRect.height - gap);
-    noteTooltip.value = { text, left, top };
+    tooltip.value = { ...tooltip.value, left, top };
   });
 }
 
@@ -173,6 +186,32 @@ function hideNoteTooltip() {
   window.clearTimeout(noteTooltipTimer);
   noteTooltipTimer = window.setTimeout(() => {
     noteTooltip.value = null;
+  }, 120);
+}
+
+function showRecruitmentTooltip(event, record) {
+  if (!hasRecruitmentPreview(record)) return;
+  window.clearTimeout(recruitmentTooltipTimer);
+  window.clearTimeout(noteTooltipTimer);
+  noteTooltip.value = null;
+  const anchor = event.currentTarget;
+  const anchorRect = anchor.getBoundingClientRect();
+  recruitmentTooltip.value = {
+    html: renderMarkdown(record.link),
+    left: anchorRect.left,
+    top: anchorRect.bottom + 8,
+  };
+  positionTooltip(recruitmentTooltip, recruitmentTooltipElement, anchorRect);
+}
+
+function keepRecruitmentTooltip() {
+  window.clearTimeout(recruitmentTooltipTimer);
+}
+
+function hideRecruitmentTooltip() {
+  window.clearTimeout(recruitmentTooltipTimer);
+  recruitmentTooltipTimer = window.setTimeout(() => {
+    recruitmentTooltip.value = null;
   }, 120);
 }
 </script>
@@ -200,7 +239,16 @@ function hideNoteTooltip() {
           </td>
           <td>
             <div>{{ sourceLabel(record) }}</div>
-            <button type="button" class="markdown-entry-button" @click="emit('markdown', record)">
+            <button
+              type="button"
+              class="markdown-entry-button"
+              :class="{ 'has-recruitment-preview': hasRecruitmentPreview(record) }"
+              @click="emit('markdown', record)"
+              @mouseenter="showRecruitmentTooltip($event, record)"
+              @mouseleave="hideRecruitmentTooltip"
+              @focus="showRecruitmentTooltip($event, record)"
+              @blur="hideRecruitmentTooltip"
+            >
               <FileText :size="15" />{{ record.link ? '招聘信息' : '添加信息' }}
             </button>
           </td>
@@ -299,6 +347,21 @@ function hideNoteTooltip() {
       @mouseleave="hideNoteTooltip"
     >
       {{ noteTooltip.text }}
+    </div>
+
+    <div
+      v-if="recruitmentTooltip"
+      ref="recruitmentTooltipElement"
+      class="recruitment-preview-tooltip"
+      role="tooltip"
+      :style="{ left: `${recruitmentTooltip.left}px`, top: `${recruitmentTooltip.top}px` }"
+      @mouseenter="keepRecruitmentTooltip"
+      @mouseleave="hideRecruitmentTooltip"
+    >
+      <div class="recruitment-preview-tooltip-head">
+        <FileText :size="16" />招聘信息预览
+      </div>
+      <div class="recruitment-preview-tooltip-content" v-html="recruitmentTooltip.html"></div>
     </div>
   </Teleport>
 </template>
