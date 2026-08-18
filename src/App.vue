@@ -31,6 +31,8 @@ import {
   nowLocal,
   personalInfoItemCount,
   saveState,
+  sortStatusHistory,
+  statusSortRank,
   today,
   uid,
 } from './lib/data.js';
@@ -139,13 +141,31 @@ const filteredRecords = computed(() => {
 
   return list.sort((a, b) => {
     if (sortBy.value === 'date-asc') {
-      return String(applicationTimeForRecord(a)).localeCompare(String(applicationTimeForRecord(b)));
+      return compareRecordsByDateAndStatus(a, b, 'asc');
     }
     if (sortBy.value === 'company') return String(a.company).localeCompare(String(b.company), 'zh-CN');
-    if (sortBy.value === 'status') return String(a.status).localeCompare(String(b.status), 'zh-CN');
-    return String(applicationTimeForRecord(b)).localeCompare(String(applicationTimeForRecord(a)));
+    if (sortBy.value === 'status') {
+      return statusSortRank(a.status) - statusSortRank(b.status)
+        || String(a.status).localeCompare(String(b.status), 'zh-CN');
+    }
+    return compareRecordsByDateAndStatus(a, b, 'desc');
   });
 });
+
+function compareRecordsByDateAndStatus(a, b, direction) {
+  const aClosed = statusSortRank(a.status) >= 80;
+  const bClosed = statusSortRank(b.status) >= 80;
+  if (aClosed !== bClosed) return aClosed ? 1 : -1;
+
+  const aTime = new Date(applicationTimeForRecord(a)).getTime();
+  const bTime = new Date(applicationTimeForRecord(b)).getTime();
+  const aHasTime = Number.isFinite(aTime);
+  const bHasTime = Number.isFinite(bTime);
+  if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+  if (aHasTime && aTime !== bTime) return direction === 'asc' ? aTime - bTime : bTime - aTime;
+  return statusSortRank(a.status) - statusSortRank(b.status)
+    || String(a.company).localeCompare(String(b.company), 'zh-CN');
+}
 
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredRecords.value.length / PAGE_SIZE)));
 const pageRecords = computed(() => {
@@ -258,7 +278,7 @@ function openHistoryModal(record) {
 function saveHistory(nodes) {
   const index = records.value.findIndex((record) => record.id === historyRecord.value?.id);
   if (index < 0) return;
-  const statusHistory = normalizeHistory(nodes);
+  const statusHistory = sortStatusHistory(nodes);
   records.value[index] = {
     ...records.value[index],
     status: statusHistory.at(-1).status,

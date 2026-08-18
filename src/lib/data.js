@@ -26,8 +26,35 @@ export function today() {
 
 export function nowLocal() {
   const date = new Date();
-  date.setMinutes(Math.round(date.getMinutes() / 15) * 15, 0, 0);
+  date.setSeconds(0, 0);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+export function statusSortRank(status) {
+  const normalizedStatus = String(status || '').trim();
+  if (/拒绝|被拒|淘汰|不考虑|未通过|失败/.test(normalizedStatus)) return 90;
+  if (/入职/.test(normalizedStatus)) return 80;
+  if (/Offer/i.test(normalizedStatus)) return 70;
+  if (/面试/.test(normalizedStatus)) return 40;
+  if (/笔试/.test(normalizedStatus)) return 30;
+  if (/待跟进/.test(normalizedStatus)) return 20;
+  if (/已投递/.test(normalizedStatus)) return 10;
+  if (/待投递/.test(normalizedStatus)) return 0;
+  return 50;
+}
+
+export function sortStatusHistory(history) {
+  return normalizeHistory(history)
+    .map((node, index) => ({ node, index, time: new Date(node.at).getTime() }))
+    .sort((a, b) => {
+      const aHasTime = Number.isFinite(a.time);
+      const bHasTime = Number.isFinite(b.time);
+      if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
+      if (aHasTime && a.time !== b.time) return a.time - b.time;
+      const rankDifference = statusSortRank(a.node.status) - statusSortRank(b.node.status);
+      return rankDifference || a.index - b.index;
+    })
+    .map(({ node }) => node);
 }
 
 export function uid() {
@@ -107,7 +134,7 @@ export function normalizeInterviews(interviews) {
 }
 
 export function historyFromRecord(record) {
-  const saved = normalizeHistory(record?.statusHistory);
+  const saved = sortStatusHistory(record?.statusHistory);
   if (saved.length) return saved;
 
   const history = [];

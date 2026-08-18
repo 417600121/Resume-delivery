@@ -7,6 +7,7 @@ import {
   formatDateTime,
   isWebLink,
   nowLocal,
+  sortStatusHistory,
   statusClass,
   uid,
 } from '../lib/data.js';
@@ -28,8 +29,9 @@ const summary = computed(() => {
 const selectedNode = computed(() => (
   draft.nodes.find((node) => node.id === selectedNodeId.value) || draft.nodes.at(-1) || null
 ));
+const sortedNodes = computed(() => sortStatusHistory(draft.nodes));
 const selectedNodeIndex = computed(() => (
-  selectedNode.value ? draft.nodes.findIndex((node) => node.id === selectedNode.value.id) : -1
+  selectedNode.value ? sortedNodes.value.findIndex((node) => node.id === selectedNode.value.id) : -1
 ));
 
 watch(
@@ -48,7 +50,7 @@ watch(
         link: '',
       });
     }
-    selectedNodeId.value = draft.nodes.at(-1)?.id || '';
+    selectedNodeId.value = sortedNodes.value.at(-1)?.id || '';
   },
   { immediate: true },
 );
@@ -56,7 +58,7 @@ watch(
 function addNode() {
   const node = {
     id: uid(),
-    status: draft.nodes.at(-1)?.status || props.options.status[0] || '已投递',
+    status: sortedNodes.value.at(-1)?.status || props.options.status[0] || '已投递',
     at: nowLocal(),
     note: '',
     round: '',
@@ -69,13 +71,12 @@ function addNode() {
   });
 }
 
-function removeNode(index) {
+function removeNode() {
   if (draft.nodes.length <= 1) return;
-  const removingSelectedNode = draft.nodes[index]?.id === selectedNodeId.value;
-  draft.nodes.splice(index, 1);
-  if (removingSelectedNode) {
-    selectedNodeId.value = draft.nodes[Math.min(index, draft.nodes.length - 1)]?.id || '';
-  }
+  const selectedIndex = selectedNodeIndex.value;
+  const selectedId = selectedNodeId.value;
+  draft.nodes = draft.nodes.filter((node) => node.id !== selectedId);
+  selectedNodeId.value = sortStatusHistory(draft.nodes)[Math.min(selectedIndex, draft.nodes.length - 1)]?.id || '';
 }
 
 function changeStatus(node) {
@@ -115,7 +116,7 @@ function statusOptions(node) {
 }
 
 function submit() {
-  const nodes = draft.nodes
+  const nodes = sortStatusHistory(draft.nodes)
     .filter((node) => node.status)
     .map((node) => ({
       id: node.id || uid(),
@@ -149,7 +150,7 @@ function submit() {
             </div>
             <div class="history-node-list" role="list">
               <button
-                v-for="(node, index) in draft.nodes"
+                v-for="(node, index) in sortedNodes"
                 :key="node.id"
                 type="button"
                 class="history-node-item"
@@ -185,7 +186,7 @@ function submit() {
                 class="button history-delete-node"
                 title="删除当前状态节点"
                 :disabled="draft.nodes.length <= 1"
-                @click="removeNode(selectedNodeIndex)"
+                @click="removeNode"
               >
                 <Trash2 :size="16" />删除节点
               </button>
@@ -200,7 +201,7 @@ function submit() {
               </div>
               <div class="field">
                 <label>发生时间</label>
-                <input v-model="selectedNode.at" type="datetime-local" step="900" />
+                <input v-model="selectedNode.at" type="datetime-local" step="60" />
               </div>
               <div v-if="selectedNode.status === '面试中'" class="field">
                 <label>面试轮次</label>
