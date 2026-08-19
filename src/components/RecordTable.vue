@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-vue-next';
 import {
+  applicationStatusQueryLink,
   applicationTimeForRecord,
   formatDateTime,
   interviewsForRecord,
@@ -71,7 +72,8 @@ const recordRows = computed(() => props.records.map((record) => {
         }
       : null;
 
-  let actionLink = currentNode?.link || '';
+  const statusQueryLink = applicationStatusQueryLink(record);
+  let actionLink = record.status === '已投递' ? '' : currentNode?.link || '';
   if (record.status === '待投递') {
     const recruitmentLink = firstMarkdownLink(record.link);
     if (!isWebLink(actionLink) && recruitmentLink) actionLink = recruitmentLink;
@@ -81,6 +83,7 @@ const recordRows = computed(() => props.records.map((record) => {
   return {
     record,
     statusEvent,
+    statusQueryLink,
     actionLink,
     actionLabel: {
       待投递: '打开投递链接',
@@ -232,7 +235,7 @@ function hideRecruitmentTooltip() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="{ record, statusEvent, actionLink, actionLabel } in recordRows" :key="record.id">
+        <tr v-for="{ record, statusEvent, statusQueryLink, actionLink, actionLabel } in recordRows" :key="record.id">
           <td class="company-column">
             <div class="company">{{ record.company }}</div>
             <div class="position">{{ record.position }}</div>
@@ -251,6 +254,15 @@ function hideRecruitmentTooltip() {
             >
               <FileText :size="15" />{{ record.link ? '招聘信息' : '添加信息' }}
             </button>
+            <a
+              v-if="isWebLink(statusQueryLink)"
+              class="application-status-query-button"
+              :href="statusQueryLink"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLink :size="15" />查询官网状态
+            </a>
           </td>
           <td class="application-time-cell application-time-column">
             <div>{{ formatDateTime(applicationTimeForRecord(record)) }}</div>

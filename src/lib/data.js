@@ -176,6 +176,12 @@ export function applicationTimeForRecord(record) {
   return history.length || !record?.date ? '' : `${record.date}T00:00`;
 }
 
+export function applicationStatusQueryLink(record) {
+  return sortStatusHistory(record?.statusHistory)
+    .filter((node) => node.status === '已投递' && String(node.link || '').trim())
+    .at(-1)?.link.trim() || '';
+}
+
 export function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
