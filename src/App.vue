@@ -33,7 +33,7 @@ import {
   saveState,
   sortStatusHistory,
   statusSortRank,
-  today,
+  submittedTimeForRecord,
   uid,
 } from './lib/data.js';
 
@@ -184,9 +184,10 @@ watch(sidebarCollapsed, (collapsed) => {
 });
 
 const metrics = computed(() => {
-  const current = new Date(`${today()}T00:00:00`);
+  const current = new Date();
   const sevenDaysAgo = new Date(current);
-  sevenDaysAgo.setDate(current.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   return [
     { label: '总投递', value: records.value.length, meta: '全部记录' },
     { label: '待跟进', value: countStatus('待跟进'), meta: '需要主动推进' },
@@ -195,8 +196,8 @@ const metrics = computed(() => {
     {
       label: '近 7 天投递',
       value: records.value.filter((record) => {
-        const date = new Date(`${record.date}T00:00:00`);
-        return !Number.isNaN(date.getTime()) && date >= sevenDaysAgo && date <= current;
+        const date = new Date(submittedTimeForRecord(record));
+        return Number.isFinite(date.getTime()) && date >= sevenDaysAgo && date <= current;
       }).length,
       meta: '最近节奏',
     },

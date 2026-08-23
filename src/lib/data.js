@@ -164,9 +164,10 @@ export function interviewsForRecord(record) {
 }
 
 export function applicationTimeForRecord(record) {
+  const submitted = submittedTimeForRecord(record);
+  if (submitted) return submitted;
+
   const history = normalizeHistory(record?.statusHistory);
-  const submitted = history.find((node) => node.status === '已投递' && node.at);
-  if (submitted) return submitted.at;
 
   const currentStatus = [...history]
     .reverse()
@@ -174,6 +175,15 @@ export function applicationTimeForRecord(record) {
   if (currentStatus) return currentStatus.at;
 
   return history.length || !record?.date ? '' : `${record.date}T00:00`;
+}
+
+export function submittedTimeForRecord(record) {
+  const submitted = sortStatusHistory(record?.statusHistory)
+    .filter((node) => node.status === '已投递' && node.at)
+    .at(-1);
+  if (submitted) return submitted.at;
+
+  return record?.date ? `${record.date}T00:00` : '';
 }
 
 export function applicationStatusQueryLink(record) {
