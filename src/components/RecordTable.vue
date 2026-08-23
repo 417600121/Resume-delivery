@@ -127,7 +127,7 @@ function sourceLabel(record) {
 }
 
 function hasRecruitmentPreview(record) {
-  return record.source === '公司官网' && Boolean(record.link?.trim());
+  return Boolean(String(record.link || '').trim());
 }
 
 function priorityClass(value) {
