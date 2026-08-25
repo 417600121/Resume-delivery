@@ -39,7 +39,7 @@ function submit() {
             <h3 id="markdown-modal-title">招聘信息 / 备注</h3>
             <p class="modal-subtitle">{{ recordTitle }}</p>
           </div>
-          <button type="button" class="modal-close" title="关闭" @click="emit('close')"><X :size="20" /></button>
+          <button type="button" class="modal-close" title="关闭" aria-label="关闭招聘信息编辑弹窗" @click="emit('close')"><X :size="20" /></button>
         </header>
 
         <div class="markdown-toolbar">

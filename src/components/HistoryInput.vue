@@ -2,6 +2,8 @@
 import { computed, nextTick, ref } from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps({
   modelValue: { type: String, default: '' },
   suggestions: { type: Array, default: () => [] },
@@ -52,6 +54,7 @@ function closeLater() {
   <div class="history-input">
     <input
       ref="input"
+      v-bind="$attrs"
       :value="modelValue"
       :placeholder="placeholder"
       :required="required"

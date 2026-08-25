@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  文档语言：简体中文（zh-CN）。
+  所有由 OpenSpec 创建、更新或归档的人工可读产物均必须使用简体中文，
+  包括 proposal.md、design.md、spec.md、tasks.md 及其摘要、任务和验收说明。
+  需求、场景、标题、正文、列表项、设计决策、风险说明和任务描述均使用简体中文；
+  不要将整段说明或任务写成英文。
+  对 OpenSpec 校验所依赖的固定 Markdown 结构、关键字和复选框语法必须原样保留，
+  例如 `## ADDED Requirements`、`### Requirement:`、`#### Scenario:` 和 `- [ ] 1.1`；
+  只将这些结构之后的可读内容写成简体中文。
+  本项目面向中文使用者，界面文案、变更文档和实施说明默认使用简体中文。
+
+rules:
+  proposal:
+    - 所有正文、列表项、能力名称后的说明和影响分析必须使用简体中文；保留模板要求的固定结构。
+  specs:
+    - 所有 Purpose、Requirement 和 Scenario 的可读内容必须使用简体中文。
+    - 保留 `ADDED/MODIFIED/REMOVED/RENAMED Requirements`、`Requirement:` 和 `Scenario:` 等 OpenSpec 校验关键字。
+  design:
+    - 所有上下文、目标、非目标、设计决策、风险、迁移计划和开放问题必须使用简体中文。
+  tasks:
+    - 所有任务分组标题、任务描述和验证条件必须使用简体中文；保留 `- [ ] X.Y` 复选框格式。
+
+operations:
+  apply:
+    guidance:
+      - 实施过程中的进度更新、变更说明和验证结论使用简体中文。
+  archive:
+    guidance:
+      - 归档摘要和相关说明使用简体中文。

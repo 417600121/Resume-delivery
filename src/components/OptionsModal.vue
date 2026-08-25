@@ -67,6 +67,7 @@ function submit() {
                 <button
                   type="button"
                   :title="`删除${item}`"
+                  :aria-label="`删除${item}`"
                   :disabled="draft[group.key].length <= 1"
                   @click="removeOption(group.key, index)"
                 >

@@ -23,11 +23,12 @@ import { firstMarkdownLink, renderMarkdown } from '../lib/markdown.js';
 const props = defineProps({
   records: { type: Array, default: () => [] },
   filteredCount: { type: Number, default: 0 },
+  totalCount: { type: Number, default: 0 },
   page: { type: Number, default: 1 },
   pageCount: { type: Number, default: 1 },
 });
 
-const emit = defineEmits(['add', 'edit', 'history', 'markdown', 'delete', 'page']);
+const emit = defineEmits(['add', 'clear-filters', 'edit', 'history', 'markdown', 'delete', 'page']);
 const clock = ref(Date.now());
 const noteTooltip = ref(null);
 const noteTooltipElement = ref(null);
@@ -224,14 +225,14 @@ function hideRecruitmentTooltip() {
     <table>
       <thead>
         <tr>
-          <th class="company-column">公司 / 职位</th>
-          <th>来源 / 招聘信息</th>
-          <th class="application-time-column">投递时间</th>
-          <th>当前状态</th>
-          <th>下一步 / 链接</th>
-          <th>地点</th>
-          <th>优先级</th>
-          <th class="actions-column">操作</th>
+          <th scope="col" class="company-column">公司 / 职位</th>
+          <th scope="col">来源 / 招聘信息</th>
+          <th scope="col" class="application-time-column">投递时间</th>
+          <th scope="col">当前状态</th>
+          <th scope="col">下一步 / 链接</th>
+          <th scope="col">地点</th>
+          <th scope="col">优先级</th>
+          <th scope="col" class="actions-column">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -316,10 +317,10 @@ function hideRecruitmentTooltip() {
               <button type="button" class="action-button history-action" title="修改投递状态" @click="emit('history', record)">
                 <History :size="16" />修改状态
               </button>
-              <button type="button" class="icon-button" title="编辑记录" @click="emit('edit', record)">
+              <button type="button" class="icon-button" title="编辑记录" aria-label="编辑记录" @click="emit('edit', record)">
                 <Pencil :size="16" />
               </button>
-              <button type="button" class="icon-button danger" title="删除记录" @click="emit('delete', record)">
+              <button type="button" class="icon-button danger" title="删除记录" aria-label="删除记录" @click="emit('delete', record)">
                 <Trash2 :size="16" />
               </button>
             </div>
@@ -330,9 +331,15 @@ function hideRecruitmentTooltip() {
   </div>
 
   <div v-else class="empty-state">
-    <strong>{{ filteredCount ? '当前页没有记录' : '还没有匹配的投递记录' }}</strong>
-    <p>新增一条记录，或调整当前筛选条件。</p>
-    <button type="button" class="button primary" @click="emit('add')">新增投递</button>
+    <strong>{{ totalCount ? '没有符合条件的记录' : '还没有投递记录' }}</strong>
+    <p>{{ totalCount ? '尝试清除搜索或筛选条件，查看全部投递。' : '创建第一条投递记录，开始整理你的求职进度。' }}</p>
+    <button
+      v-if="totalCount"
+      type="button"
+      class="button"
+      @click="emit('clear-filters')"
+    >清除筛选</button>
+    <button v-else type="button" class="button primary" @click="emit('add')">新增投递</button>
   </div>
 
   <footer v-if="filteredCount" class="pagination">

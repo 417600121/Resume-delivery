@@ -34,6 +34,7 @@ import {
   sortStatusHistory,
   statusSortRank,
   submittedTimeForRecord,
+  today,
   uid,
 } from './lib/data.js';
 
@@ -43,9 +44,9 @@ const loaded = loadState();
 
 function loadSidebarCollapsed() {
   try {
-    return localStorage.getItem(SIDEBAR_KEY) !== 'false';
+    return localStorage.getItem(SIDEBAR_KEY) === 'true';
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -218,6 +219,15 @@ function mergeSuggestions(preferred, recorded) {
 
 function countStatus(status) {
   return records.value.filter((record) => record.status === status).length;
+}
+
+function clearFilters() {
+  search.value = '';
+  statusFilter.value = '';
+  sourceFilter.value = '';
+  sortBy.value = 'date-desc';
+  page.value = 1;
+  showToast('已清除搜索和筛选');
 }
 
 function showToast(message) {
@@ -506,18 +516,20 @@ async function importJson(event) {
           <p>{{ activeView === 'records' ? '集中管理岗位、面试安排与每一次状态变化。' : '姓名、在校、项目与实习经历的常用信息。' }}</p>
         </div>
         <div v-if="activeView === 'records'" class="top-actions">
-          <button type="button" class="button" @click="optionsModalOpen = true">
-            <Settings :size="17" />选项设置
-          </button>
-          <button type="button" class="button" @click="exportCsv">
-            <Download :size="17" />导出 CSV
-          </button>
-          <button type="button" class="button" @click="openJsonExport">
-            <Download :size="17" />导出 JSON
-          </button>
-          <button type="button" class="button" @click="openJsonImport">
-            <Upload :size="17" />导入 JSON
-          </button>
+          <div class="top-actions-secondary" aria-label="数据工具">
+            <button type="button" class="button button-quiet" @click="optionsModalOpen = true">
+              <Settings :size="16" />选项设置
+            </button>
+            <button type="button" class="button button-quiet" @click="exportCsv">
+              <Download :size="16" />导出 CSV
+            </button>
+            <button type="button" class="button button-quiet" @click="openJsonExport">
+              <Download :size="16" />导出 JSON
+            </button>
+            <button type="button" class="button button-quiet" @click="openJsonImport">
+              <Upload :size="16" />导入 JSON
+            </button>
+          </div>
           <input
             ref="jsonImportInput"
             type="file"
@@ -533,10 +545,11 @@ async function importJson(event) {
 
       <template v-if="activeView === 'records'">
         <section class="summary" aria-label="投递统计">
-            <article v-for="metric in metrics" :key="metric.label" class="metric">
-              <div class="metric-label">{{ metric.label }}</div>
-              <div class="metric-value">{{ metric.value }}</div>
-            </article>
+          <article v-for="metric in metrics" :key="metric.label" class="metric">
+            <div class="metric-label">{{ metric.label }}</div>
+            <div class="metric-value">{{ metric.value }}</div>
+            <div class="metric-meta">{{ metric.meta }}</div>
+          </article>
         </section>
 
         <section class="records-panel">
@@ -564,9 +577,11 @@ async function importJson(event) {
           <RecordTable
             :records="pageRecords"
             :filtered-count="filteredRecords.length"
+            :total-count="records.length"
             :page="page"
             :page-count="pageCount"
             @add="openAddModal"
+            @clear-filters="clearFilters"
             @edit="openEditModal"
             @history="openHistoryModal"
             @markdown="openMarkdownModal"
@@ -620,7 +635,7 @@ async function importJson(event) {
     <section class="modal modal-export-json" role="dialog" aria-modal="true" aria-labelledby="json-export-title">
       <header class="modal-head">
         <h3 id="json-export-title">导出 JSON</h3>
-        <button type="button" class="modal-close" title="关闭" @click="jsonExportModalOpen = false">
+        <button type="button" class="modal-close" title="关闭" aria-label="关闭 JSON 导出弹窗" @click="jsonExportModalOpen = false">
           <X :size="20" />
         </button>
       </header>

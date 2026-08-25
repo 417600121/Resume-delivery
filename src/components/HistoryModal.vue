@@ -139,7 +139,7 @@ function submit() {
             <h3 id="history-modal-title">修改投递状态</h3>
             <p class="modal-subtitle">{{ summary }}</p>
           </div>
-          <button type="button" class="modal-close" title="关闭" @click="emit('close')"><X :size="20" /></button>
+          <button type="button" class="modal-close" title="关闭" aria-label="关闭状态时间线弹窗" @click="emit('close')"><X :size="20" /></button>
         </header>
 
         <div class="history-workspace">
