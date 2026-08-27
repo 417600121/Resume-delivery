@@ -208,7 +208,7 @@ const metrics = computed(() => {
       key: 'follow-up',
       label: '待跟进',
       value: followUpRecords.length,
-      meta: '排除被拒绝、已拒绝、已拿 Offer',
+      meta: '需要主动推进',
       records: followUpRecords,
     },
     { key: 'interview', label: '面试中', value: interviewRecords.length, meta: '正在推进', records: interviewRecords },
