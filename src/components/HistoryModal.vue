@@ -11,6 +11,7 @@ import {
   statusClass,
   uid,
 } from '../lib/data.js';
+import SelectMenu from './SelectMenu.vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -33,6 +34,10 @@ const sortedNodes = computed(() => sortStatusHistory(draft.nodes));
 const selectedNodeIndex = computed(() => (
   selectedNode.value ? sortedNodes.value.findIndex((node) => node.id === selectedNode.value.id) : -1
 ));
+const roundOptions = computed(() => [
+  { value: '', label: '选择轮次' },
+  ...INTERVIEW_ROUNDS.map((round) => ({ value: round, label: round })),
+]);
 
 watch(
   () => props.open,
@@ -194,21 +199,27 @@ function submit() {
 
             <div class="history-detail-form">
               <div class="field">
-                <label>状态</label>
-                <select v-model="selectedNode.status" @change="changeStatus(selectedNode)">
-                  <option v-for="item in statusOptions(selectedNode)" :key="item" :value="item">{{ item }}</option>
-                </select>
+                <label for="history-status">状态</label>
+                <SelectMenu
+                  id="history-status"
+                  v-model="selectedNode.status"
+                  aria-label="状态"
+                  :options="statusOptions(selectedNode)"
+                  @change="changeStatus(selectedNode)"
+                />
               </div>
               <div class="field">
                 <label>发生时间</label>
                 <input v-model="selectedNode.at" type="datetime-local" step="60" />
               </div>
               <div v-if="selectedNode.status === '面试中'" class="field">
-                <label>面试轮次</label>
-                <select v-model="selectedNode.round">
-                  <option value="">选择轮次</option>
-                  <option v-for="round in INTERVIEW_ROUNDS" :key="round" :value="round">{{ round }}</option>
-                </select>
+                <label for="history-round">面试轮次</label>
+                <SelectMenu
+                  id="history-round"
+                  v-model="selectedNode.round"
+                  aria-label="面试轮次"
+                  :options="roundOptions"
+                />
               </div>
               <div class="field history-detail-note">
                 <label>节点备注</label>

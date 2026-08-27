@@ -1,14 +1,17 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import {
   BriefcaseBusiness,
   Download,
   LayoutList,
+  Monitor,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   Search,
   Settings,
+  Sun,
   Upload,
   UserRound,
   X,
@@ -20,6 +23,7 @@ import OptionsModal from './components/OptionsModal.vue';
 import PersonalInfoPanel from './components/PersonalInfoPanel.vue';
 import RecordModal from './components/RecordModal.vue';
 import RecordTable from './components/RecordTable.vue';
+import SelectMenu from './components/SelectMenu.vue';
 import {
   applicationTimeForRecord,
   clone,
@@ -41,6 +45,18 @@ import {
 
 const PAGE_SIZE = 50;
 const SIDEBAR_KEY = 'job-application-tracker-sidebar-collapsed';
+const THEME_KEY = 'job-application-tracker-theme';
+const THEME_OPTIONS = [
+  { value: 'light', label: '浅色', title: '使用浅色模式', icon: Sun },
+  { value: 'dark', label: '夜间', title: '使用夜间模式', icon: Moon },
+  { value: 'system', label: '跟随系统', title: '跟随系统主题', icon: Monitor },
+];
+const SORT_OPTIONS = [
+  { value: 'date-desc', label: '投递日期：新到旧' },
+  { value: 'date-asc', label: '投递日期：旧到新' },
+  { value: 'company', label: '公司名称' },
+  { value: 'status', label: '投递状态' },
+];
 const loaded = loadState();
 
 function loadSidebarCollapsed() {
@@ -49,6 +65,21 @@ function loadSidebarCollapsed() {
   } catch {
     return false;
   }
+}
+
+function loadThemePreference() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    return THEME_OPTIONS.some((option) => option.value === saved) ? saved : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function systemThemeIsDark() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 function normalizeRecord(record) {
@@ -83,6 +114,13 @@ const sourceFilter = ref('');
 const sortBy = ref('date-desc');
 const page = ref(1);
 const sidebarCollapsed = ref(loadSidebarCollapsed());
+const themePreference = ref(loadThemePreference());
+const systemPrefersDark = ref(systemThemeIsDark());
+const effectiveTheme = computed(() => (
+  themePreference.value === 'system'
+    ? (systemPrefersDark.value ? 'dark' : 'light')
+    : themePreference.value
+));
 const recordModalOpen = ref(false);
 const historyModalOpen = ref(false);
 const optionsModalOpen = ref(false);
@@ -97,6 +135,7 @@ const jsonExportModalOpen = ref(false);
 const exportPersonalInfo = ref(true);
 const toast = ref('');
 let toastTimer;
+let systemThemeMediaQuery;
 
 watch(
   [records, options, personalInfo],
@@ -120,6 +159,14 @@ const prioritySuggestions = computed(() => mergeSuggestions(
   options.priority,
   records.value.map((record) => record.priority),
 ));
+const statusFilterOptions = computed(() => [
+  { value: '', label: '全部状态' },
+  ...options.status.map((item) => ({ value: item, label: item })),
+]);
+const sourceFilterOptions = computed(() => [
+  { value: '', label: '全部来源' },
+  ...sourceSuggestions.value.map((item) => ({ value: item, label: item })),
+]);
 
 const filteredRecords = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -184,6 +231,42 @@ watch(sidebarCollapsed, (collapsed) => {
     localStorage.setItem(SIDEBAR_KEY, String(collapsed));
   } catch {
     // The layout still works when browser storage is unavailable.
+  }
+});
+
+watch(themePreference, (preference) => {
+  try {
+    localStorage.setItem(THEME_KEY, preference);
+  } catch {
+    // The theme still applies when browser storage is unavailable.
+  }
+});
+
+watch(effectiveTheme, (theme) => {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+}, { immediate: true });
+
+function updateSystemTheme(event) {
+  systemPrefersDark.value = event.matches;
+}
+
+onMounted(() => {
+  if (typeof window.matchMedia !== 'function') return;
+  systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  systemPrefersDark.value = systemThemeMediaQuery.matches;
+  if (systemThemeMediaQuery.addEventListener) {
+    systemThemeMediaQuery.addEventListener('change', updateSystemTheme);
+  } else {
+    systemThemeMediaQuery.addListener?.(updateSystemTheme);
+  }
+});
+
+onUnmounted(() => {
+  if (systemThemeMediaQuery?.removeEventListener) {
+    systemThemeMediaQuery.removeEventListener('change', updateSystemTheme);
+  } else {
+    systemThemeMediaQuery?.removeListener?.(updateSystemTheme);
   }
 });
 
@@ -539,6 +622,24 @@ async function importJson(event) {
           <span>{{ sidebarCollapsed ? '展开侧边栏' : '收起侧边栏' }}</span>
         </button>
       </nav>
+
+      <section class="theme-settings" aria-label="主题设置">
+        <div class="theme-options" role="radiogroup" aria-label="选择主题">
+          <button
+            v-for="theme in THEME_OPTIONS"
+            :key="theme.value"
+            type="button"
+            class="theme-option"
+            :class="{ active: themePreference === theme.value }"
+            :aria-pressed="themePreference === theme.value"
+            :title="theme.title"
+            @click="themePreference = theme.value"
+          >
+            <component :is="theme.icon" :size="15" />
+            <span>{{ theme.label }}</span>
+          </button>
+        </div>
+      </section>
     </aside>
 
     <main class="main-content">
@@ -598,20 +699,9 @@ async function importJson(event) {
               <Search :size="18" />
               <input v-model="search" placeholder="搜索公司、职位、来源、地点或备注" />
             </div>
-            <select v-model="statusFilter" class="filter-select" aria-label="按状态筛选">
-              <option value="">全部状态</option>
-              <option v-for="item in options.status" :key="item" :value="item">{{ item }}</option>
-            </select>
-            <select v-model="sourceFilter" class="filter-select" aria-label="按来源筛选">
-              <option value="">全部来源</option>
-              <option v-for="item in sourceSuggestions" :key="item" :value="item">{{ item }}</option>
-            </select>
-            <select v-model="sortBy" class="filter-select sort-select" aria-label="排序">
-              <option value="date-desc">投递日期：新到旧</option>
-              <option value="date-asc">投递日期：旧到新</option>
-              <option value="company">公司名称</option>
-              <option value="status">投递状态</option>
-            </select>
+            <SelectMenu v-model="statusFilter" class="filter-select" aria-label="按状态筛选" :options="statusFilterOptions" />
+            <SelectMenu v-model="sourceFilter" class="filter-select" aria-label="按来源筛选" :options="sourceFilterOptions" />
+            <SelectMenu v-model="sortBy" class="filter-select sort-select" aria-label="排序" :options="SORT_OPTIONS" />
           </div>
 
           <RecordTable

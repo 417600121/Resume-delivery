@@ -1,5 +1,12 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
 
 defineOptions({ inheritAttrs: false });
@@ -12,9 +19,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+const root = ref(null);
+const menu = ref(null);
 const open = ref(false);
 const displayMode = ref('filtered');
 const input = ref(null);
+const menuStyle = ref({});
 
 const matches = computed(() => {
   if (displayMode.value === 'all') return props.suggestions;
@@ -48,10 +58,66 @@ function select(value) {
 function closeLater() {
   window.setTimeout(() => { open.value = false; }, 100);
 }
+
+function updateMenuPosition() {
+  const inputRect = root.value?.getBoundingClientRect();
+  if (!inputRect) return;
+
+  const viewportPadding = 12;
+  const width = Math.min(
+    Math.max(inputRect.width, 176),
+    Math.max(120, window.innerWidth - viewportPadding * 2),
+  );
+  const left = Math.min(
+    Math.max(viewportPadding, inputRect.left),
+    Math.max(viewportPadding, window.innerWidth - width - viewportPadding),
+  );
+  const spaceBelow = Math.max(40, window.innerHeight - inputRect.bottom - viewportPadding);
+  const spaceAbove = Math.max(40, inputRect.top - viewportPadding);
+  const estimatedHeight = Math.min(260, matches.value.length * 38 + 10);
+  const openAbove = spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
+  const availableHeight = openAbove ? spaceAbove : spaceBelow;
+
+  menuStyle.value = {
+    width: `${width}px`,
+    maxHeight: `${Math.min(260, availableHeight)}px`,
+    left: `${left}px`,
+    top: openAbove ? 'auto' : `${inputRect.bottom + 7}px`,
+    bottom: openAbove ? `${window.innerHeight - inputRect.top + 7}px` : 'auto',
+  };
+}
+
+function handleViewportChange() {
+  if (open.value) updateMenuPosition();
+}
+
+function handleOutsidePointerDown(event) {
+  if (!root.value?.contains(event.target) && !menu.value?.contains(event.target)) {
+    open.value = false;
+  }
+}
+
+watch(open, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    nextTick(updateMenuPosition);
+  } else {
+    window.removeEventListener('resize', handleViewportChange);
+    window.removeEventListener('scroll', handleViewportChange, true);
+  }
+});
+
+onMounted(() => document.addEventListener('pointerdown', handleOutsidePointerDown));
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', handleOutsidePointerDown);
+  window.removeEventListener('resize', handleViewportChange);
+  window.removeEventListener('scroll', handleViewportChange, true);
+});
 </script>
 
 <template>
-  <div class="history-input">
+  <div ref="root" class="history-input">
     <input
       ref="input"
       v-bind="$attrs"
@@ -73,16 +139,18 @@ function closeLater() {
     >
       <ChevronDown :size="16" />
     </button>
-    <div v-if="open && matches.length" class="suggestion-menu">
-      <button
-        v-for="item in matches"
-        :key="item"
-        type="button"
-        class="suggestion-item"
-        @mousedown.prevent="select(item)"
-      >
-        {{ item }}
-      </button>
-    </div>
+    <Teleport to="body">
+      <div v-if="open && matches.length" ref="menu" class="suggestion-menu" :style="menuStyle">
+        <button
+          v-for="item in matches"
+          :key="item"
+          type="button"
+          class="suggestion-item"
+          @mousedown.prevent="select(item)"
+        >
+          {{ item }}
+        </button>
+      </div>
+    </Teleport>
   </div>
 </template>
