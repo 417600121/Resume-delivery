@@ -137,6 +137,15 @@ const toast = ref('');
 let toastTimer;
 let systemThemeMediaQuery;
 
+const anyModalOpen = computed(() => (
+  recordModalOpen.value
+  || historyModalOpen.value
+  || optionsModalOpen.value
+  || markdownModalOpen.value
+  || metricModalOpen.value
+  || jsonExportModalOpen.value
+));
+
 watch(
   [records, options, personalInfo],
   () => {
@@ -247,6 +256,11 @@ watch(effectiveTheme, (theme) => {
   document.documentElement.style.colorScheme = theme;
 }, { immediate: true });
 
+watch(anyModalOpen, (open) => {
+  document.documentElement.classList.toggle('modal-open', open);
+  document.body.classList.toggle('modal-open', open);
+}, { immediate: true });
+
 function updateSystemTheme(event) {
   systemPrefersDark.value = event.matches;
 }
@@ -268,6 +282,8 @@ onUnmounted(() => {
   } else {
     systemThemeMediaQuery?.removeListener?.(updateSystemTheme);
   }
+  document.documentElement.classList.remove('modal-open');
+  document.body.classList.remove('modal-open');
 });
 
 const metrics = computed(() => {

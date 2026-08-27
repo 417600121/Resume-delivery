@@ -3317,3 +3317,47 @@ tbody tr:hover td:last-child {
   border-color: var(--blue);
   box-shadow: none;
 }
+
+/* Keep the page still while modal content owns its own scrolling surface. */
+html.modal-open,
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html.modal-open {
+  scrollbar-gutter: stable;
+}
+
+.modal-backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(18, 27, 38, 0.56);
+  -webkit-backdrop-filter: blur(12px) saturate(112%);
+  backdrop-filter: blur(12px) saturate(112%);
+}
+
+.modal {
+  max-height: min(820px, 94vh);
+  overflow: auto;
+}
+
+.record-modal {
+  max-height: min(820px, 94vh);
+  overflow: auto;
+}
+
+.modal-history {
+  overflow: hidden;
+}
+
+:root[data-theme='dark'] .modal-backdrop {
+  background: rgba(3, 9, 16, 0.7);
+  -webkit-backdrop-filter: blur(12px) saturate(105%);
+  backdrop-filter: blur(12px) saturate(105%);
+}
+
+:root[data-theme='dark'] .modal {
+  border-color: #2b3a4a;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.46);
+}
