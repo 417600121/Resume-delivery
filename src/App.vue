@@ -15,6 +15,7 @@ import {
 } from 'lucide-vue-next';
 import HistoryModal from './components/HistoryModal.vue';
 import MarkdownModal from './components/MarkdownModal.vue';
+import MetricRecordsModal from './components/MetricRecordsModal.vue';
 import OptionsModal from './components/OptionsModal.vue';
 import PersonalInfoPanel from './components/PersonalInfoPanel.vue';
 import RecordModal from './components/RecordModal.vue';
@@ -86,6 +87,8 @@ const recordModalOpen = ref(false);
 const historyModalOpen = ref(false);
 const optionsModalOpen = ref(false);
 const markdownModalOpen = ref(false);
+const metricModalOpen = ref(false);
+const selectedMetricKey = ref('');
 const editingRecord = ref(null);
 const historyRecord = ref(null);
 const markdownRecord = ref(null);
@@ -189,21 +192,33 @@ const metrics = computed(() => {
   const sevenDaysAgo = new Date(current);
   sevenDaysAgo.setHours(0, 0, 0, 0);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+  const allRecords = records.value;
+  const followUpRecords = allRecords.filter(isFollowUpRecord);
+  const interviewRecords = allRecords.filter((record) => record.status === '面试中');
+  const offerRecords = allRecords.filter((record) => isOfferStatus(record.status));
+  const recentRecords = allRecords.filter((record) => {
+    const date = new Date(submittedTimeForRecord(record));
+    return Number.isFinite(date.getTime()) && date >= sevenDaysAgo && date <= current;
+  });
+
   return [
-    { label: '总投递', value: records.value.length, meta: '全部记录' },
-    { label: '待跟进', value: countStatus('待跟进'), meta: '需要主动推进' },
-    { label: '面试中', value: countStatus('面试中'), meta: '正在推进' },
-    { label: '已拿 Offer', value: countStatus('已拿Offer'), meta: '阶段成果' },
+    { key: 'total', label: '总投递', value: allRecords.length, meta: '全部记录', records: allRecords },
     {
-      label: '近 7 天投递',
-      value: records.value.filter((record) => {
-        const date = new Date(submittedTimeForRecord(record));
-        return Number.isFinite(date.getTime()) && date >= sevenDaysAgo && date <= current;
-      }).length,
-      meta: '最近节奏',
+      key: 'follow-up',
+      label: '待跟进',
+      value: followUpRecords.length,
+      meta: '排除被拒绝、已拒绝、已拿 Offer',
+      records: followUpRecords,
     },
+    { key: 'interview', label: '面试中', value: interviewRecords.length, meta: '正在推进', records: interviewRecords },
+    { key: 'offer', label: '已拿 Offer', value: offerRecords.length, meta: '阶段成果', records: offerRecords },
+    { key: 'recent', label: '近 7 天投递', value: recentRecords.length, meta: '最近节奏', records: recentRecords },
   ];
 });
+
+const selectedMetric = computed(() => metrics.value.find((metric) => metric.key === selectedMetricKey.value) || null);
+const selectedMetricRecords = computed(() => selectedMetric.value?.records || []);
 
 function uniqueValues(values) {
   return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))]
@@ -217,8 +232,26 @@ function mergeSuggestions(preferred, recorded) {
     .filter((value) => value && !seen.has(value) && seen.add(value));
 }
 
-function countStatus(status) {
-  return records.value.filter((record) => record.status === status).length;
+function isRejectedStatus(status) {
+  return /被拒绝|已拒绝|拒绝/.test(String(status || '').trim());
+}
+
+function isOfferStatus(status) {
+  return /offer/i.test(String(status || '').trim());
+}
+
+function isFollowUpRecord(record) {
+  return !isRejectedStatus(record.status) && !isOfferStatus(record.status);
+}
+
+function openMetricModal(metric) {
+  selectedMetricKey.value = metric.key;
+  metricModalOpen.value = true;
+}
+
+function closeMetricModal() {
+  metricModalOpen.value = false;
+  selectedMetricKey.value = '';
 }
 
 function clearFilters() {
@@ -545,11 +578,18 @@ async function importJson(event) {
 
       <template v-if="activeView === 'records'">
         <section class="summary" aria-label="投递统计">
-          <article v-for="metric in metrics" :key="metric.label" class="metric">
+          <button
+            v-for="metric in metrics"
+            :key="metric.key"
+            type="button"
+            class="metric metric-clickable"
+            :aria-label="`查看${metric.label}记录，共 ${metric.value} 条`"
+            @click="openMetricModal(metric)"
+          >
             <div class="metric-label">{{ metric.label }}</div>
             <div class="metric-value">{{ metric.value }}</div>
             <div class="metric-meta">{{ metric.meta }}</div>
-          </article>
+          </button>
         </section>
 
         <section class="records-panel">
@@ -623,6 +663,12 @@ async function importJson(event) {
     :record="markdownRecord"
     @close="markdownModalOpen = false"
     @save="saveMarkdown"
+  />
+  <MetricRecordsModal
+    :open="metricModalOpen"
+    :metric="selectedMetric"
+    :records="selectedMetricRecords"
+    @close="closeMetricModal"
   />
   <OptionsModal
     :open="optionsModalOpen"
