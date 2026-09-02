@@ -149,7 +149,7 @@ function statusCountdown(value) {
   const suffix = [
     days ? `${days} 天` : '',
     hours ? `${hours} 小时` : '',
-    `${minutes} 分钟`,
+    minutes || (!days && !hours) ? `${minutes} 分钟` : '',
   ].filter(Boolean).join(' ');
   return target >= clock.value ? `还有 ${suffix}` : `已过去 ${suffix}`;
 }
