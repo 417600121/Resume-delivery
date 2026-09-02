@@ -43,6 +43,20 @@ export function statusSortRank(status) {
   return 50;
 }
 
+export function upcomingStatusTimeForRecord(record, now = Date.now()) {
+  const currentTime = Number.isFinite(now) ? now : Date.now();
+  const historyTimes = normalizeHistory(record?.statusHistory)
+    .map((node) => new Date(node.at).getTime())
+    .filter((time) => Number.isFinite(time) && time >= currentTime);
+  const interviewTimes = record?.status === '面试中'
+    ? interviewsForRecord(record)
+      .map((interview) => new Date(interview.date).getTime())
+      .filter((time) => Number.isFinite(time) && time >= currentTime)
+    : [];
+
+  return [...historyTimes, ...interviewTimes].sort((a, b) => a - b)[0] ?? null;
+}
+
 export function sortStatusHistory(history) {
   return normalizeHistory(history)
     .map((node, index) => ({ node, index, time: new Date(node.at).getTime() }))

@@ -151,7 +151,7 @@ tbody tr:hover { background: #fbfdff; }
 .next-step { max-width: 240px; line-height: 1.4; }
 .status-event-summary { margin-top: 6px; color: #604e1c; font-size: 14px; font-weight: 750; line-height: 1.4; white-space: nowrap; }
 .status-event-countdown { margin-top: 2px; font-size: 13px; font-weight: 800; line-height: 1.35; }
-.status-event-countdown.upcoming { color: #b05d2f; }
+.status-event-countdown.upcoming { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 7px; border: 1px solid #db5b84; border-radius: 6px; background: #fff0f5; color: #ae164a; box-shadow: 0 0 0 2px rgba(219, 91, 132, 0.12); }
 .status-event-countdown.past { color: var(--muted); font-weight: 700; }
 .status-event-note { display: -webkit-box; max-width: 250px; margin-top: 5px; overflow: hidden; color: #53697f; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; white-space: normal; cursor: help; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .status-event-note:focus-visible { border-radius: 3px; outline: 2px solid #81a7c9; outline-offset: 2px; }
@@ -3360,4 +3360,11 @@ html.modal-open {
 :root[data-theme='dark'] .modal {
   border-color: #2b3a4a;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.46);
+}
+
+:root[data-theme='dark'] .status-event-countdown.upcoming {
+  border-color: #a94369;
+  background: #492035;
+  color: #ff9fc3;
+  box-shadow: 0 0 0 2px rgba(255, 159, 195, 0.14);
 }

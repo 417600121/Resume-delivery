@@ -40,6 +40,7 @@ import {
   statusSortRank,
   submittedTimeForRecord,
   today,
+  upcomingStatusTimeForRecord,
   uid,
 } from './lib/data.js';
 
@@ -136,6 +137,8 @@ const exportPersonalInfo = ref(true);
 const toast = ref('');
 let toastTimer;
 let systemThemeMediaQuery;
+const sortClock = ref(Date.now());
+let sortClockTimer;
 
 const anyModalOpen = computed(() => (
   recordModalOpen.value
@@ -200,6 +203,9 @@ const filteredRecords = computed(() => {
   });
 
   return list.sort((a, b) => {
+    const upcomingDifference = compareUpcomingStatusTime(a, b);
+    if (upcomingDifference) return upcomingDifference;
+
     if (sortBy.value === 'date-asc') {
       return compareRecordsByDateAndStatus(a, b, 'asc');
     }
@@ -211,6 +217,17 @@ const filteredRecords = computed(() => {
     return compareRecordsByDateAndStatus(a, b, 'desc');
   });
 });
+
+function compareUpcomingStatusTime(a, b) {
+  const now = sortClock.value;
+  const aUpcomingTime = upcomingStatusTimeForRecord(a, now);
+  const bUpcomingTime = upcomingStatusTimeForRecord(b, now);
+  const aHasUpcoming = Number.isFinite(aUpcomingTime);
+  const bHasUpcoming = Number.isFinite(bUpcomingTime);
+  if (aHasUpcoming !== bHasUpcoming) return aHasUpcoming ? -1 : 1;
+  if (aHasUpcoming && aUpcomingTime !== bUpcomingTime) return aUpcomingTime - bUpcomingTime;
+  return 0;
+}
 
 function compareRecordsByDateAndStatus(a, b, direction) {
   const aClosed = statusSortRank(a.status) >= 80;
@@ -266,6 +283,7 @@ function updateSystemTheme(event) {
 }
 
 onMounted(() => {
+  sortClockTimer = window.setInterval(() => { sortClock.value = Date.now(); }, 30_000);
   if (typeof window.matchMedia !== 'function') return;
   systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   systemPrefersDark.value = systemThemeMediaQuery.matches;
@@ -277,6 +295,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.clearInterval(sortClockTimer);
   if (systemThemeMediaQuery?.removeEventListener) {
     systemThemeMediaQuery.removeEventListener('change', updateSystemTheme);
   } else {
