@@ -57,6 +57,41 @@ export function upcomingStatusTimeForRecord(record, now = Date.now()) {
   return [...historyTimes, ...interviewTimes].sort((a, b) => a - b)[0] ?? null;
 }
 
+export function statusScheduleForRecord(record, status, now = Date.now()) {
+  const normalizedStatus = String(status || '').trim();
+  const currentTime = Number.isFinite(now) ? now : Date.now();
+  const matchingNodes = normalizeHistory(record?.statusHistory)
+    .filter((node) => String(node.status || '').trim() === normalizedStatus);
+  const sourceNodes = matchingNodes.length || normalizedStatus !== '面试中'
+    ? matchingNodes
+    : normalizeInterviews(record?.interviews).map((interview) => ({
+        status: '面试中',
+        at: interview.date,
+        round: interview.round,
+        link: interview.link,
+        note: '',
+      }));
+  const timedNodes = sourceNodes
+    .map((node) => ({ node, time: new Date(node.at).getTime() }))
+    .filter(({ time }) => Number.isFinite(time));
+  const upcoming = timedNodes
+    .filter(({ time }) => time >= currentTime)
+    .sort((a, b) => a.time - b.time);
+
+  if (upcoming.length) {
+    return { bucket: 'upcoming', node: upcoming[0].node, time: upcoming[0].time, hasKnownTime: true };
+  }
+
+  const past = timedNodes
+    .filter(({ time }) => time < currentTime)
+    .sort((a, b) => b.time - a.time);
+  if (past.length) {
+    return { bucket: 'past', node: past[0].node, time: past[0].time, hasKnownTime: true };
+  }
+
+  return { bucket: 'past', node: sourceNodes.at(-1) || null, time: null, hasKnownTime: false };
+}
+
 export function sortStatusHistory(history) {
   return normalizeHistory(history)
     .map((node, index) => ({ node, index, time: new Date(node.at).getTime() }))
