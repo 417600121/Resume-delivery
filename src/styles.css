@@ -577,7 +577,7 @@ a:focus-visible {
 }
 
 .metric:nth-child(1)::before,
-.metric:nth-child(5)::before {
+.metric:nth-child(6)::before {
   background: var(--coral);
 }
 
@@ -1475,7 +1475,7 @@ a:focus-visible {
 }
 
 .summary {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0;
   margin-bottom: 18px;
   overflow: hidden;
@@ -1511,7 +1511,7 @@ a:focus-visible {
 }
 
 .metric:nth-child(1)::before,
-.metric:nth-child(5)::before {
+.metric:nth-child(6)::before {
   background: var(--coral);
 }
 

@@ -351,6 +351,7 @@ const metrics = computed(() => {
 
   const allRecords = records.value;
   const followUpRecords = allRecords.filter(isFollowUpRecord);
+  const writtenTestRecords = allRecords.filter((record) => record.status === '笔试中');
   const interviewRecords = allRecords.filter((record) => record.status === '面试中');
   const offerRecords = allRecords.filter((record) => isOfferStatus(record.status));
   const recentRecords = allRecords.filter((record) => {
@@ -367,6 +368,7 @@ const metrics = computed(() => {
       meta: '需要主动推进',
       records: followUpRecords,
     },
+    { key: 'written-test', label: '笔试中', value: writtenTestRecords.length, meta: '正在进行', records: writtenTestRecords },
     { key: 'interview', label: '面试中', value: interviewRecords.length, meta: '正在推进', records: interviewRecords },
     { key: 'offer', label: '已拿 Offer', value: offerRecords.length, meta: '阶段成果', records: offerRecords },
     { key: 'recent', label: '近 7 天投递', value: recentRecords.length, meta: '最近节奏', records: recentRecords },
