@@ -55,23 +55,22 @@ const recordRows = computed(() => props.records.map((record) => {
   const legacyInterview = record.status === '面试中' && !currentNode?.at
     ? selectNearestInterview(interviewsForRecord(record), now)
     : null;
-  const statusEvent = currentNode?.at
-    ? {
-        status: currentNode.status,
-        label: currentNode.round || currentNode.status,
-        date: currentNode.at,
-        note: currentNode.note,
-        link: currentNode.link,
-      }
-    : legacyInterview
-      ? {
-          status: '面试中',
-          label: legacyInterview.round || '面试',
-          date: legacyInterview.date,
-          note: '',
-          link: legacyInterview.link,
-        }
-      : null;
+  const statusEvents = record.status === '笔试中'
+    ? selectStatusNodes(history, record.status, now).map(toStatusEvent)
+    : currentNode?.at
+      ? [toStatusEvent(currentNode)]
+      : [];
+  if (!statusEvents.length && legacyInterview) {
+    statusEvents.push({
+      id: `legacy-interview-${legacyInterview.date || 'unknown'}`,
+      status: '面试中',
+      label: legacyInterview.round || '面试',
+      date: legacyInterview.date,
+      note: '',
+      link: legacyInterview.link,
+    });
+  }
+  const statusEvent = statusEvents[0] || null;
 
   const statusQueryLink = applicationStatusQueryLink(record);
   let actionLink = record.status === '已投递' ? '' : currentNode?.link || '';
@@ -83,6 +82,7 @@ const recordRows = computed(() => props.records.map((record) => {
 
   return {
     record,
+    statusEvents,
     statusEvent,
     statusQueryLink,
     actionLink,
@@ -98,15 +98,32 @@ function selectStatusNode(history, status, now) {
   const matches = history.filter((node) => node.status === status);
   if (!matches.length) return null;
 
-  const timed = matches
+  return selectStatusNodes(history, status, now)[0] || matches.at(-1);
+}
+
+function selectStatusNodes(history, status, now) {
+  const timed = history
+    .filter((node) => node.status === status)
     .map((node) => ({ node, time: new Date(node.at).getTime() }))
     .filter((item) => !Number.isNaN(item.time));
   const upcoming = timed
     .filter((item) => item.time >= now)
     .sort((a, b) => a.time - b.time);
-  if (upcoming.length) return upcoming[0].node;
+  const past = timed
+    .filter((item) => item.time < now)
+    .sort((a, b) => b.time - a.time);
+  return [...upcoming, ...past].map((item) => item.node);
+}
 
-  return timed.sort((a, b) => b.time - a.time)[0]?.node || matches.at(-1);
+function toStatusEvent(node) {
+  return {
+    id: node.id,
+    status: node.status,
+    label: node.round || node.status,
+    date: node.at,
+    note: node.note,
+    link: node.link,
+  };
 }
 
 function selectNearestInterview(interviews, now) {
@@ -236,7 +253,7 @@ function hideRecruitmentTooltip() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="{ record, statusEvent, statusQueryLink, actionLink, actionLabel } in recordRows" :key="record.id">
+        <tr v-for="{ record, statusEvents, statusEvent, statusQueryLink, actionLink, actionLabel } in recordRows" :key="record.id">
           <td class="company-column">
             <div class="company">{{ record.company }}</div>
             <div class="position">{{ record.position }}</div>
@@ -274,28 +291,30 @@ function hideRecruitmentTooltip() {
           </td>
           <td>
             <div v-if="record.nextStep" class="next-step">{{ record.nextStep }}</div>
-            <template v-if="statusEvent">
-              <div class="status-event-summary">
-                {{ statusEvent.label }} · {{ formatDateTime(statusEvent.date) }}
-              </div>
-              <div
-                v-if="statusCountdown(statusEvent.date)"
-                class="status-event-countdown"
-                :class="new Date(statusEvent.date).getTime() >= clock ? 'upcoming' : 'past'"
-              >
-                {{ statusCountdown(statusEvent.date) }}
-              </div>
-              <div
-                v-if="statusEvent.note"
-                class="status-event-note"
-                tabindex="0"
-                aria-label="查看完整节点备注"
-                @mouseenter="showNoteTooltip($event, statusEvent.note)"
-                @mouseleave="hideNoteTooltip"
-                @focus="showNoteTooltip($event, statusEvent.note)"
-                @blur="hideNoteTooltip"
-              >
-                {{ statusEvent.note }}
+            <template v-if="statusEvents.length">
+              <div v-for="event in statusEvents" :key="event.id" class="status-event">
+                <div class="status-event-summary">
+                  {{ event.label }} · {{ formatDateTime(event.date) }}
+                </div>
+                <div
+                  v-if="statusCountdown(event.date)"
+                  class="status-event-countdown"
+                  :class="new Date(event.date).getTime() >= clock ? 'upcoming' : 'past'"
+                >
+                  {{ statusCountdown(event.date) }}
+                </div>
+                <div
+                  v-if="event.note"
+                  class="status-event-note"
+                  tabindex="0"
+                  aria-label="查看完整节点备注"
+                  @mouseenter="showNoteTooltip($event, event.note)"
+                  @mouseleave="hideNoteTooltip"
+                  @focus="showNoteTooltip($event, event.note)"
+                  @blur="hideNoteTooltip"
+                >
+                  {{ event.note }}
+                </div>
               </div>
             </template>
             <a

@@ -202,21 +202,59 @@ const filteredRecords = computed(() => {
       && (!sourceFilter.value || record.source === sourceFilter.value);
   });
 
-  return list.sort((a, b) => {
-    const upcomingDifference = compareUpcomingStatusTime(a, b);
-    if (upcomingDifference) return upcomingDifference;
-
-    if (sortBy.value === 'date-asc') {
-      return compareRecordsByDateAndStatus(a, b, 'asc');
-    }
-    if (sortBy.value === 'company') return String(a.company).localeCompare(String(b.company), 'zh-CN');
-    if (sortBy.value === 'status') {
-      return statusSortRank(a.status) - statusSortRank(b.status)
-        || String(a.status).localeCompare(String(b.status), 'zh-CN');
-    }
-    return compareRecordsByDateAndStatus(a, b, 'desc');
+  const groups = new Map();
+  list.forEach((record) => {
+    const key = companyGroupKey(record);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(record);
   });
+
+  return [...groups.values()]
+    .map((recordsInGroup) => {
+      const sortedRecords = recordsInGroup.sort(compareRecordsForView);
+      const upcomingTimes = recordsInGroup
+        .map((record) => upcomingStatusTimeForRecord(record, sortClock.value))
+        .filter((time) => Number.isFinite(time));
+      return {
+        records: sortedRecords,
+        upcomingTime: upcomingTimes.sort((a, b) => a - b)[0] ?? null,
+        representative: sortedRecords[0],
+      };
+    })
+    .sort(compareCompanyGroups)
+    .flatMap((group) => group.records);
 });
+
+function companyGroupKey(record) {
+  const company = String(record.company || '').trim();
+  if (!company || /笔试/.test(String(record.status || '').trim())) return `__record__${record.id}`;
+  return company.toLocaleLowerCase('zh-CN');
+}
+
+function compareRecordsForView(a, b) {
+  const upcomingDifference = compareUpcomingStatusTime(a, b);
+  if (upcomingDifference) return upcomingDifference;
+
+  if (sortBy.value === 'date-asc') {
+    return compareRecordsByDateAndStatus(a, b, 'asc');
+  }
+  if (sortBy.value === 'company') return String(a.company).localeCompare(String(b.company), 'zh-CN');
+  if (sortBy.value === 'status') {
+    return statusSortRank(a.status) - statusSortRank(b.status)
+      || String(a.status).localeCompare(String(b.status), 'zh-CN');
+  }
+  return compareRecordsByDateAndStatus(a, b, 'desc');
+}
+
+function compareCompanyGroups(a, b) {
+  const aHasUpcoming = Number.isFinite(a.upcomingTime);
+  const bHasUpcoming = Number.isFinite(b.upcomingTime);
+  if (aHasUpcoming !== bHasUpcoming) return aHasUpcoming ? -1 : 1;
+  if (aHasUpcoming && a.upcomingTime !== b.upcomingTime) return a.upcomingTime - b.upcomingTime;
+
+  return compareRecordsForView(a.representative, b.representative)
+    || String(a.representative.company || '').localeCompare(String(b.representative.company || ''), 'zh-CN');
+}
 
 function compareUpcomingStatusTime(a, b) {
   const now = sortClock.value;
