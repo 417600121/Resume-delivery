@@ -11,6 +11,7 @@ import {
   statusClass,
   uid,
 } from '../lib/data.js';
+import DateTimePicker from './DateTimePicker.vue';
 import SelectMenu from './SelectMenu.vue';
 
 const props = defineProps({
@@ -209,8 +210,8 @@ function submit() {
                 />
               </div>
               <div class="field">
-                <label>发生时间</label>
-                <input v-model="selectedNode.at" type="datetime-local" step="60" />
+                <label for="history-time">发生时间</label>
+                <DateTimePicker id="history-time" v-model="selectedNode.at" />
               </div>
               <div v-if="selectedNode.status === '面试中'" class="field">
                 <label for="history-round">面试轮次</label>
