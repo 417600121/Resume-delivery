@@ -132,7 +132,7 @@ function updatePopoverPosition() {
   if (!triggerRect) return;
 
   const viewportPadding = 12;
-  const width = Math.min(362, window.innerWidth - viewportPadding * 2);
+  const width = Math.min(560, window.innerWidth - viewportPadding * 2);
   const left = clamp(
     triggerRect.left,
     viewportPadding,
@@ -140,7 +140,7 @@ function updatePopoverPosition() {
   );
   const spaceBelow = window.innerHeight - triggerRect.bottom - viewportPadding;
   const spaceAbove = triggerRect.top - viewportPadding;
-  const estimatedHeight = 478;
+  const estimatedHeight = 430;
   const openAbove = spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
 
   popoverStyle.value = {
@@ -289,65 +289,69 @@ onBeforeUnmount(() => {
         role="dialog"
         aria-label="选择日期和时间"
       >
-        <header class="date-time-picker-header">
-          <div>
-            <strong>{{ monthLabel }}</strong>
-            <span>选择发生日期</span>
-          </div>
-          <div class="date-time-picker-month-actions">
-            <button type="button" title="上个月" aria-label="上个月" @click="changeMonth(-1)">
-              <ChevronLeft :size="18" />
-            </button>
-            <button type="button" title="下个月" aria-label="下个月" @click="changeMonth(1)">
-              <ChevronRight :size="18" />
-            </button>
-          </div>
-        </header>
+        <div class="date-time-picker-main">
+          <div class="date-time-picker-calendar-pane">
+            <header class="date-time-picker-header">
+              <div>
+                <strong>{{ monthLabel }}</strong>
+                <span>选择发生日期</span>
+              </div>
+              <div class="date-time-picker-month-actions">
+                <button type="button" title="上个月" aria-label="上个月" @click="changeMonth(-1)">
+                  <ChevronLeft :size="18" />
+                </button>
+                <button type="button" title="下个月" aria-label="下个月" @click="changeMonth(1)">
+                  <ChevronRight :size="18" />
+                </button>
+              </div>
+            </header>
 
-        <div class="date-time-picker-weekdays" aria-hidden="true">
-          <span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span>
-        </div>
-        <div class="date-time-picker-calendar" role="grid" :aria-label="monthLabel">
-          <button
-            v-for="day in calendarDays"
-            :key="day.key"
-            type="button"
-            class="date-time-picker-day"
-            role="gridcell"
-            :class="{
-              outside: !day.currentMonth,
-              selected: day.selected,
-              today: day.today,
-            }"
-            :aria-label="`${day.date.getFullYear()}年${day.date.getMonth() + 1}月${day.date.getDate()}日`"
-            :aria-selected="day.selected"
-            :aria-current="day.today ? 'date' : undefined"
-            @click="chooseDate(day)"
-          >
-            {{ day.label }}
-          </button>
-        </div>
-
-        <section class="date-time-picker-time" aria-label="选择时间">
-          <div class="date-time-picker-time-heading">
-            <div class="date-time-picker-time-title">
-              <Clock3 :size="16" aria-hidden="true" />
-              <span>发生时间</span>
+            <div class="date-time-picker-weekdays" aria-hidden="true">
+              <span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span>
             </div>
-            <button type="button" class="date-time-picker-now" @click="chooseNow">现在</button>
+            <div class="date-time-picker-calendar" role="grid" :aria-label="monthLabel">
+              <button
+                v-for="day in calendarDays"
+                :key="day.key"
+                type="button"
+                class="date-time-picker-day"
+                role="gridcell"
+                :class="{
+                  outside: !day.currentMonth,
+                  selected: day.selected,
+                  today: day.today,
+                }"
+                :aria-label="`${day.date.getFullYear()}年${day.date.getMonth() + 1}月${day.date.getDate()}日`"
+                :aria-selected="day.selected"
+                :aria-current="day.today ? 'date' : undefined"
+                @click="chooseDate(day)"
+              >
+                {{ day.label }}
+              </button>
+            </div>
           </div>
-          <div class="date-time-picker-time-controls">
-            <TimePickerPanel
-              class="date-time-picker-time-panel"
-              :value="timePickerValue"
-              format="HH:mm"
-              :steps="[1, 1]"
-              :is-show-panel="true"
-              :is-footer-display="false"
-              :on-change="handleTimePickerChange"
-            />
-          </div>
-        </section>
+
+          <section class="date-time-picker-time" aria-label="选择时间">
+            <div class="date-time-picker-time-heading">
+              <div class="date-time-picker-time-title">
+                <Clock3 :size="16" aria-hidden="true" />
+                <span>发生时间</span>
+              </div>
+              <button type="button" class="date-time-picker-now" @click="chooseNow">现在</button>
+            </div>
+            <div class="date-time-picker-time-controls">
+              <TimePickerPanel
+                class="date-time-picker-time-panel"
+                :value="timePickerValue"
+                format="HH:mm"
+                :steps="[1, 1]"
+                :is-show-panel="true"
+                :is-footer-display="false"
+                :on-change="handleTimePickerChange"
+              />
+            </div>
+          </section>
+        </div>
 
         <footer class="date-time-picker-footer">
           <button type="button" class="date-time-picker-clear" @click="clear">
