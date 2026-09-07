@@ -228,10 +228,18 @@ const filteredRecords = computed(() => {
 function companyGroupKey(record) {
   const company = String(record.company || '').trim();
   if (!company || /笔试/.test(String(record.status || '').trim())) return `__record__${record.id}`;
-  return company.toLocaleLowerCase('zh-CN');
+  return JSON.stringify([recordStageGroup(record), company.toLocaleLowerCase('zh-CN')]);
+}
+
+function recordStageGroup(record) {
+  const rank = statusSortRank(record.status);
+  return rank >= 90 ? 2 : rank >= 70 ? 1 : 0;
 }
 
 function compareRecordsForView(a, b) {
+  const stageDifference = recordStageGroup(a) - recordStageGroup(b);
+  if (stageDifference) return stageDifference;
+
   const upcomingDifference = compareUpcomingStatusTime(a, b);
   if (upcomingDifference) return upcomingDifference;
 
@@ -247,6 +255,9 @@ function compareRecordsForView(a, b) {
 }
 
 function compareCompanyGroups(a, b) {
+  const stageDifference = recordStageGroup(a.representative) - recordStageGroup(b.representative);
+  if (stageDifference) return stageDifference;
+
   const aHasUpcoming = Number.isFinite(a.upcomingTime);
   const bHasUpcoming = Number.isFinite(b.upcomingTime);
   if (aHasUpcoming !== bHasUpcoming) return aHasUpcoming ? -1 : 1;
@@ -268,17 +279,15 @@ function compareUpcomingStatusTime(a, b) {
 }
 
 function compareRecordsByDateAndStatus(a, b, direction) {
-  const aClosed = statusSortRank(a.status) >= 80;
-  const bClosed = statusSortRank(b.status) >= 80;
-  if (aClosed !== bClosed) return aClosed ? 1 : -1;
-
+  const aStatusRank = statusSortRank(a.status);
+  const bStatusRank = statusSortRank(b.status);
   const aTime = new Date(applicationTimeForRecord(a)).getTime();
   const bTime = new Date(applicationTimeForRecord(b)).getTime();
   const aHasTime = Number.isFinite(aTime);
   const bHasTime = Number.isFinite(bTime);
   if (aHasTime !== bHasTime) return aHasTime ? -1 : 1;
   if (aHasTime && aTime !== bTime) return direction === 'asc' ? aTime - bTime : bTime - aTime;
-  return statusSortRank(a.status) - statusSortRank(b.status)
+  return aStatusRank - bStatusRank
     || String(a.company).localeCompare(String(b.company), 'zh-CN');
 }
 
