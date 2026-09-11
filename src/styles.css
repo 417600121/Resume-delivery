@@ -1989,7 +1989,8 @@ tbody tr:hover td:last-child {
 .record-field--source,
 .record-field--source-detail,
 .record-field--status,
-.record-field--next-step {
+.record-field--next-step,
+.record-field--submitted-at {
   grid-column: span 3;
 }
 
@@ -2000,6 +2001,28 @@ tbody tr:hover td:last-child {
 .record-field--recruitment,
 .record-field--notes {
   grid-column: span 6;
+}
+
+.record-field--submitted-link {
+  grid-column: span 9;
+}
+
+.record-field--submitted-note {
+  grid-column: 1 / -1;
+}
+
+.record-form-section.record-form-section--submitted {
+  padding-top: 8px;
+}
+
+.record-form-section--submitted .record-form-fields {
+  gap: 7px 12px;
+  margin-top: 6px;
+}
+
+.record-form .record-form-section--submitted .record-field--submitted-note textarea {
+  height: 64px;
+  min-height: 64px;
 }
 
 .record-form .field {

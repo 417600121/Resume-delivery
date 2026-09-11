@@ -461,31 +461,50 @@ function openEditModal(record) {
 }
 
 function saveRecord(draft) {
-  const index = draft.id ? records.value.findIndex((record) => record.id === draft.id) : -1;
+  const {
+    submittedAt = '',
+    submittedNote = '',
+    submittedLink = '',
+    ...recordDraft
+  } = draft;
+  const index = recordDraft.id ? records.value.findIndex((record) => record.id === recordDraft.id) : -1;
   const existing = index >= 0 ? records.value[index] : null;
   const statusHistory = existing ? normalizeHistory(existing.statusHistory) : [];
+  const initiallySubmitted = !existing && recordDraft.status === '已投递';
 
   if (!statusHistory.length) {
+    const initialAt = initiallySubmitted ? submittedAt : nowLocal();
     statusHistory.push({
       id: uid(),
       status: '待投递',
-      at: nowLocal(),
+      at: initialAt,
       note: '创建记录',
       round: '',
       link: '',
     });
+    if (initiallySubmitted) {
+      statusHistory.push({
+        id: uid(),
+        status: '已投递',
+        at: initialAt,
+        note: String(submittedNote || '').trim(),
+        round: '',
+        link: String(submittedLink || '').trim(),
+      });
+    }
   }
+  const sortedStatusHistory = sortStatusHistory(statusHistory);
 
   const record = {
     ...existing,
-    ...draft,
+    ...recordDraft,
     id: existing?.id || uid(),
     date: existing?.date || '',
     followUpDate: '',
-    sourceDetail: draft.source === '其他' ? draft.sourceDetail || '' : '',
-    status: statusHistory.at(-1).status,
-    statusHistory,
-    interviews: interviewsFromHistory(statusHistory),
+    sourceDetail: recordDraft.source === '其他' ? recordDraft.sourceDetail || '' : '',
+    status: sortedStatusHistory.at(-1).status,
+    statusHistory: sortedStatusHistory,
+    interviews: interviewsFromHistory(sortedStatusHistory),
   };
 
   if (index >= 0) records.value[index] = record;

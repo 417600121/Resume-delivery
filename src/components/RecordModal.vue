@@ -1,8 +1,10 @@
 <script setup>
 import { reactive, watch } from 'vue';
 import { X } from 'lucide-vue-next';
+import DateTimePicker from './DateTimePicker.vue';
 import HistoryInput from './HistoryInput.vue';
-import { clone } from '../lib/data.js';
+import SelectMenu from './SelectMenu.vue';
+import { clone, nowLocal } from '../lib/data.js';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -17,6 +19,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save']);
 
 const draft = reactive({});
+const initialStatusOptions = [
+  { value: '待投递', label: '待投递' },
+  { value: '已投递', label: '已投递' },
+];
 
 function resetDraft() {
   Object.keys(draft).forEach((key) => delete draft[key]);
@@ -32,6 +38,9 @@ function resetDraft() {
     nextStep: '',
     priority: props.options.priority.includes('中') ? '中' : props.options.priority[0] || '',
     notes: '',
+    submittedAt: nowLocal(),
+    submittedNote: '',
+    submittedLink: '',
   }));
 }
 
@@ -42,8 +51,10 @@ function submit() {
   value.source = String(value.source || '').trim();
   value.priority = String(value.priority || '').trim();
   if (!props.record) {
-    value.status = '待投递';
+    value.status = value.status === '已投递' ? '已投递' : '待投递';
     value.date = '';
+    value.submittedNote = String(value.submittedNote || '').trim();
+    value.submittedLink = String(value.submittedLink || '').trim();
   }
   emit('save', value);
 }
@@ -103,7 +114,14 @@ function submit() {
             <div class="record-form-fields">
               <div class="field record-field record-field--status">
                 <label for="record-status">当前投递状态</label>
-                <input id="record-status" :value="draft.status || '待投递'" disabled />
+                <SelectMenu
+                  v-if="!record"
+                  id="record-status"
+                  v-model="draft.status"
+                  aria-label="当前投递状态"
+                  :options="initialStatusOptions"
+                />
+                <input v-else id="record-status" :value="draft.status || '待投递'" disabled />
               </div>
               <div class="field record-field record-field--next-step">
                 <label for="record-next-step">下一步计划</label>
@@ -112,6 +130,24 @@ function submit() {
               <div class="field record-field record-field--notes">
                 <label for="record-notes">备注</label>
                 <textarea id="record-notes" v-model.trim="draft.notes" placeholder="记录岗位亮点、联系人、薪资范围或面试反馈"></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset v-if="!record && draft.status === '已投递'" class="record-form-section record-form-section--submitted">
+            <legend>已投递节点</legend>
+            <div class="record-form-fields">
+              <div class="field record-field record-field--submitted-at">
+                <label for="record-submitted-at">投递时间</label>
+                <DateTimePicker id="record-submitted-at" v-model="draft.submittedAt" />
+              </div>
+              <div class="field record-field record-field--submitted-link">
+                <label for="record-submitted-link">相关链接</label>
+                <input id="record-submitted-link" v-model.trim="draft.submittedLink" placeholder="粘贴投递记录或相关链接" />
+              </div>
+              <div class="field record-field record-field--submitted-note">
+                <label for="record-submitted-note">节点备注</label>
+                <textarea id="record-submitted-note" v-model.trim="draft.submittedNote" placeholder="记录投递渠道、账号、联系人或注意事项"></textarea>
               </div>
             </div>
           </fieldset>
