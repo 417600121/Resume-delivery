@@ -27,7 +27,6 @@ import SelectMenu from './components/SelectMenu.vue';
 import {
   applicationTimeForRecord,
   clone,
-  followUpTypeForStatus,
   historyFromRecord,
   interviewsFromHistory,
   loadState,
@@ -327,14 +326,6 @@ watch(anyModalOpen, (open) => {
   document.body.classList.toggle('modal-open', open);
 }, { immediate: true });
 
-watch(
-  [sortClock, historyModalOpen],
-  ([currentTime, historyOpen]) => {
-    if (!historyOpen) moveCompletedSchedulesToFollowUp(currentTime);
-  },
-  { immediate: true },
-);
-
 function updateSystemTheme(event) {
   systemPrefersDark.value = event.matches;
 }
@@ -443,40 +434,6 @@ function isOfferStatus(status) {
 
 function isFollowUpRecord(record) {
   return record.status === '待跟进';
-}
-
-function moveCompletedSchedulesToFollowUp(currentTime) {
-  let changed = false;
-  const transitionAt = nowLocal();
-  const nextRecords = records.value.map((record) => {
-    const followUpType = followUpTypeForStatus(record.status);
-    if (followUpType === 'general') return record;
-
-    const schedule = statusScheduleForRecord(record, record.status, currentTime);
-    if (schedule.bucket !== 'past' || !schedule.hasKnownTime) return record;
-
-    const statusHistory = sortStatusHistory([
-      ...normalizeHistory(record.statusHistory),
-      {
-        id: uid(),
-        status: '待跟进',
-        at: transitionAt,
-        note: `${record.status}结束后待跟进`,
-        round: '',
-        link: '',
-        followUpType,
-      },
-    ]);
-    changed = true;
-    return {
-      ...record,
-      status: '待跟进',
-      statusHistory,
-      interviews: interviewsFromHistory(statusHistory),
-    };
-  });
-
-  if (changed) records.value = nextRecords;
 }
 
 function openMetricModal(metric) {
