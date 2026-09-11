@@ -44,6 +44,7 @@ export function statusSortRank(status) {
 }
 
 const FOLLOW_UP_TYPE_LABELS = {
+  submitted: '投递后跟进',
   'written-test': '笔试后跟进',
   interview: '面试后跟进',
   general: '常规跟进',
@@ -51,12 +52,16 @@ const FOLLOW_UP_TYPE_LABELS = {
 
 export function followUpTypeForStatus(status) {
   return {
+    已投递: 'submitted',
     笔试中: 'written-test',
     面试中: 'interview',
   }[String(status || '').trim()] || 'general';
 }
 
 export function followUpTypeForRecord(record) {
+  const currentType = followUpTypeForStatus(record?.status);
+  if (currentType !== 'general') return currentType;
+
   const history = sortStatusHistory(record?.statusHistory);
   let followUpIndex = -1;
 
@@ -132,6 +137,24 @@ export function statusScheduleForRecord(record, status, now = Date.now()) {
   }
 
   return { bucket: 'past', node: sourceNodes.at(-1) || null, time: null, hasKnownTime: false };
+}
+
+export function needsFollowUp(record, now = Date.now()) {
+  const status = String(record?.status || '').trim();
+  const currentTime = Number.isFinite(now) ? now : Date.now();
+  if (status === '待跟进') return true;
+
+  if (status === '已投递') {
+    const submittedTime = new Date(submittedTimeForRecord(record)).getTime();
+    return Number.isFinite(submittedTime) && submittedTime < currentTime;
+  }
+
+  if (status === '笔试中' || status === '面试中') {
+    const schedule = statusScheduleForRecord(record, status, currentTime);
+    return schedule.hasKnownTime && schedule.bucket === 'past';
+  }
+
+  return false;
 }
 
 export function sortStatusHistory(history) {

@@ -2541,6 +2541,12 @@ tbody tr:hover td:last-child {
   color: #6c5681;
 }
 
+.metric-record-follow-up-type.follow-up-type--submitted {
+  border-color: #c3dbe7;
+  background: #edf7fc;
+  color: #317190;
+}
+
 .metric-record-follow-up-type.follow-up-type--interview {
   border-color: #ead8ab;
   background: #fff8e9;
@@ -2905,6 +2911,7 @@ tbody tr:hover td:last-child {
 :root[data-theme='dark'] .tag.reject { border-color: #704040; background: #44282b; color: #f09a9a; }
 :root[data-theme='dark'] .metric-record-follow-up-type { border-color: #3b4854; background: #26323d; color: #b4c0ca; }
 :root[data-theme='dark'] .metric-record-follow-up-type.follow-up-type--written-test { border-color: #504463; background: #332b43; color: #c1a6d7; }
+:root[data-theme='dark'] .metric-record-follow-up-type.follow-up-type--submitted { border-color: #36586a; background: #203948; color: #8cc7e2; }
 :root[data-theme='dark'] .metric-record-follow-up-type.follow-up-type--interview { border-color: #66552f; background: #41351d; color: #e4c477; }
 
 :root[data-theme='dark'] .markdown-entry-button {

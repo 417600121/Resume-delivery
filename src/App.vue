@@ -30,6 +30,7 @@ import {
   historyFromRecord,
   interviewsFromHistory,
   loadState,
+  needsFollowUp,
   normalizeHistory,
   normalizePersonalInfo,
   normalizeStatusOptions,
@@ -361,7 +362,7 @@ const metrics = computed(() => {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
 
   const allRecords = records.value;
-  const followUpRecords = allRecords.filter(isFollowUpRecord);
+  const followUpRecords = allRecords.filter((record) => needsFollowUp(record, currentTime));
   const writtenTestRecords = allRecords.filter((record) => record.status === '笔试中');
   const writtenTestCountdownRecords = writtenTestRecords.filter((record) => (
     statusScheduleForRecord(record, '笔试中', currentTime).bucket === 'upcoming'
@@ -430,10 +431,6 @@ function isRejectedStatus(status) {
 
 function isOfferStatus(status) {
   return /offer/i.test(String(status || '').trim());
-}
-
-function isFollowUpRecord(record) {
-  return record.status === '待跟进';
 }
 
 function openMetricModal(metric) {
