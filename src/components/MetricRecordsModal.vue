@@ -2,6 +2,8 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { Clock3, X } from 'lucide-vue-next';
 import {
+  followUpTypeForRecord,
+  followUpTypeLabel,
   formatDateTime,
   statusClass,
   statusScheduleForRecord,
@@ -21,8 +23,10 @@ let clockTimer;
 
 const metricTitle = computed(() => props.metric?.label || '统计');
 const supportsTimeFilter = computed(() => Boolean(props.metric?.timeStatus));
+const supportsFollowUpTypes = computed(() => Boolean(props.metric?.followUpTypes));
 const recordEntries = computed(() => props.records.map((record) => ({
   record,
+  followUpType: supportsFollowUpTypes.value ? followUpTypeForRecord(record) : '',
   schedule: supportsTimeFilter.value
     ? statusScheduleForRecord(record, props.metric.timeStatus, clock.value)
     : null,
@@ -209,7 +213,7 @@ function scheduleDateLabel(schedule) {
 
         <div v-if="orderedEntries.length" class="metric-record-list" role="list">
           <article
-            v-for="{ record, schedule } in orderedEntries"
+            v-for="{ record, schedule, followUpType } in orderedEntries"
             :key="record.id"
             class="metric-record-item"
             role="listitem"
@@ -218,9 +222,14 @@ function scheduleDateLabel(schedule) {
               <strong>{{ record.company || '未填写公司' }}</strong>
               <span>{{ record.position || '未填写职位' }}</span>
             </div>
-            <span class="tag metric-record-status" :class="statusClass(record.status)">
-              {{ record.status || '未知状态' }}
-            </span>
+            <div class="metric-record-status-group">
+              <span class="tag metric-record-status" :class="statusClass(record.status)">
+                {{ record.status || '未知状态' }}
+              </span>
+              <span v-if="supportsFollowUpTypes" class="metric-record-follow-up-type" :class="`follow-up-type--${followUpType}`">
+                {{ followUpTypeLabel(followUpType) }}
+              </span>
+            </div>
             <div class="metric-record-age">
               <template v-if="supportsTimeFilter">
                 <strong

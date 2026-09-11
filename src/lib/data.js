@@ -43,6 +43,48 @@ export function statusSortRank(status) {
   return 50;
 }
 
+const FOLLOW_UP_TYPE_LABELS = {
+  'written-test': '笔试后跟进',
+  interview: '面试后跟进',
+  general: '常规跟进',
+};
+
+export function followUpTypeForStatus(status) {
+  return {
+    笔试中: 'written-test',
+    面试中: 'interview',
+  }[String(status || '').trim()] || 'general';
+}
+
+export function followUpTypeForRecord(record) {
+  const history = sortStatusHistory(record?.statusHistory);
+  let followUpIndex = -1;
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    if (history[index].status === '待跟进') {
+      followUpIndex = index;
+      break;
+    }
+  }
+
+  if (followUpIndex < 0) return 'general';
+
+  const explicitType = history[followUpIndex].followUpType;
+  if (FOLLOW_UP_TYPE_LABELS[explicitType]) return explicitType;
+
+  for (let index = followUpIndex - 1; index >= 0; index -= 1) {
+    const inferredType = followUpTypeForStatus(history[index].status);
+    if (inferredType !== 'general') return inferredType;
+    if (history[index].status !== '待跟进') break;
+  }
+
+  return 'general';
+}
+
+export function followUpTypeLabel(type) {
+  return FOLLOW_UP_TYPE_LABELS[type] || FOLLOW_UP_TYPE_LABELS.general;
+}
+
 export function upcomingStatusTimeForRecord(record, now = Date.now()) {
   const currentTime = Number.isFinite(now) ? now : Date.now();
   const historyTimes = normalizeHistory(record?.statusHistory)
@@ -172,6 +214,7 @@ export function normalizeHistory(history) {
       note: node.note || '',
       round: node.round || '',
       link: node.link || '',
+      followUpType: node.followUpType || '',
     }));
 }
 

@@ -131,6 +131,7 @@ function submit() {
       note: node.note?.trim() || '',
       round: node.status === '面试中' ? node.round || '' : '',
       link: node.link?.trim() || '',
+      followUpType: node.status === '待跟进' ? node.followUpType || '' : '',
     }));
   if (nodes.length) emit('save', nodes);
 }
