@@ -37,6 +37,7 @@ import {
   personalInfoItemCount,
   saveState,
   sortStatusHistory,
+  statusScheduleForRecord,
   statusSortRank,
   submittedTimeForRecord,
   today,
@@ -353,7 +354,8 @@ onUnmounted(() => {
 });
 
 const metrics = computed(() => {
-  const current = new Date();
+  const currentTime = sortClock.value;
+  const current = new Date(currentTime);
   const sevenDaysAgo = new Date(current);
   sevenDaysAgo.setHours(0, 0, 0, 0);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -361,6 +363,9 @@ const metrics = computed(() => {
   const allRecords = records.value;
   const followUpRecords = allRecords.filter(isFollowUpRecord);
   const writtenTestRecords = allRecords.filter((record) => record.status === '笔试中');
+  const writtenTestCountdownRecords = writtenTestRecords.filter((record) => (
+    statusScheduleForRecord(record, '笔试中', currentTime).bucket === 'upcoming'
+  ));
   const interviewRecords = allRecords.filter((record) => record.status === '面试中');
   const offerRecords = allRecords.filter((record) => isOfferStatus(record.status));
   const recentRecords = allRecords.filter((record) => {
@@ -380,8 +385,9 @@ const metrics = computed(() => {
     {
       key: 'written-test',
       label: '笔试中',
-      value: writtenTestRecords.length,
-      meta: '正在进行',
+      value: writtenTestCountdownRecords.length,
+      meta: '倒计时中',
+      ariaLabel: `查看笔试中记录，倒计时中 ${writtenTestCountdownRecords.length} 条`,
       records: writtenTestRecords,
       timeStatus: '笔试中',
     },
@@ -801,7 +807,7 @@ async function importJson(event) {
             :key="metric.key"
             type="button"
             class="metric metric-clickable"
-            :aria-label="`查看${metric.label}记录，共 ${metric.value} 条`"
+            :aria-label="metric.ariaLabel || `查看${metric.label}记录，共 ${metric.value} 条`"
             @click="openMetricModal(metric)"
           >
             <div class="metric-label">{{ metric.label }}</div>
