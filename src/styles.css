@@ -196,6 +196,7 @@ tbody tr:hover { background: #fbfdff; }
 .modal-history { height: min(780px, 94vh); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
 .modal-options { width: min(680px, 100%); }
 .modal-markdown { width: min(920px, 100%); }
+.modal-export-csv { width: min(460px, 100%); }
 .modal-export-json { width: min(460px, 100%); }
 .modal-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 21px; border-bottom: 1px solid var(--line); background: #fff; }
 .modal-head h3 { margin: 0; font-size: 18px; letter-spacing: 0; }
@@ -217,6 +218,9 @@ tbody tr:hover { background: #fbfdff; }
 .json-export-options { padding: 20px 21px; }
 .json-export-checkbox { min-height: 42px; display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; }
 .json-export-checkbox input { width: 18px; height: 18px; margin: 0; accent-color: var(--coral); }
+.data-export-options { padding: 20px 21px; }
+.data-export-checkbox { min-height: 42px; display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; }
+.data-export-checkbox input { width: 18px; height: 18px; margin: 0; accent-color: var(--coral); }
 
 .history-input { position: relative; }
 .history-input > input { padding-right: 38px; }
@@ -903,6 +907,7 @@ tbody tr:hover td:last-child {
 .form,
 .history-detail-form,
 .option-groups,
+.data-export-options,
 .json-export-options {
   background: var(--white);
 }
@@ -1833,6 +1838,7 @@ tbody tr:hover td:last-child {
 .form,
 .history-detail-form,
 .option-groups,
+.data-export-options,
 .json-export-options {
   background: var(--white);
 }
@@ -2941,6 +2947,7 @@ tbody tr:hover td:last-child {
 :root[data-theme='dark'] .history-node-detail,
 :root[data-theme='dark'] .history-node-detail-head,
 :root[data-theme='dark'] .option-groups,
+:root[data-theme='dark'] .data-export-options,
 :root[data-theme='dark'] .json-export-options,
 :root[data-theme='dark'] .markdown-workspace {
   background: var(--white);
@@ -3902,4 +3909,54 @@ html.modal-open {
   --td-text-color-disabled: #65798c;
   --td-border-level-1-color: #3a4d60;
   --td-bg-color-container-hover: #223544;
+}
+
+/* Keep the records grid visually even when a note or timeline contains long text. */
+.records-panel .table-wrap tbody tr {
+  height: 82px;
+}
+
+.records-panel .table-wrap tbody td {
+  height: 82px;
+  max-height: 82px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.records-panel .table-cell-content {
+  height: 56px;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.records-panel .table-cell-content--actions {
+  display: flex;
+  align-items: center;
+}
+
+.records-panel .table-wrap tbody td > div,
+.records-panel .table-wrap tbody td > a,
+.records-panel .table-wrap tbody td > button {
+  max-width: 100%;
+}
+
+.records-panel .table-wrap tbody td > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.records-panel .table-wrap .status-event {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.records-panel .table-wrap .status-event-summary,
+.records-panel .table-wrap .status-event-countdown,
+.records-panel .table-wrap .status-event-note,
+.records-panel .table-wrap .next-step {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -134,6 +134,8 @@ const editingRecord = ref(null);
 const historyRecord = ref(null);
 const markdownRecord = ref(null);
 const jsonImportInput = ref(null);
+const csvExportModalOpen = ref(false);
+const exportCsvNotes = ref(true);
 const jsonExportModalOpen = ref(false);
 const exportPersonalInfo = ref(true);
 const toast = ref('');
@@ -149,6 +151,7 @@ const anyModalOpen = computed(() => (
   || markdownModalOpen.value
   || metricModalOpen.value
   || jsonExportModalOpen.value
+  || csvExportModalOpen.value
 ));
 
 watch(
@@ -577,28 +580,33 @@ function updatePersonalInfo(groups) {
 function exportCsv() {
   const headers = [
     '公司名称', '职位名称', '消息来源', '来源补充', '招聘链接/备注', '投递时间', '投递状态',
-    '状态时间线', '下一步计划', '工作地点', '优先级', '备注',
+    '状态时间线', '下一步计划', '工作地点', '优先级',
   ];
-  const rows = records.value.map((record) => [
-    record.company,
-    record.position,
-    record.source,
-    record.sourceDetail,
-    record.link,
-    applicationTimeForRecord(record),
-    record.status,
-    normalizeHistory(record.statusHistory).map((node) => [
-      node.status,
-      node.round,
-      node.at,
-      node.note,
-      node.link,
-    ].filter(Boolean).join(' ')).join('；'),
-    record.nextStep,
-    record.location,
-    record.priority,
-    record.notes,
-  ]);
+  if (exportCsvNotes.value) headers.push('备注');
+
+  const rows = records.value.map((record) => {
+    const row = [
+      record.company,
+      record.position,
+      record.source,
+      record.sourceDetail,
+      record.link,
+      applicationTimeForRecord(record),
+      record.status,
+      normalizeHistory(record.statusHistory).map((node) => [
+        node.status,
+        node.round,
+        node.at,
+        node.note,
+        node.link,
+      ].filter(Boolean).join(' ')).join('；'),
+      record.nextStep,
+      record.location,
+      record.priority,
+    ];
+    if (exportCsvNotes.value) row.push(record.notes);
+    return row;
+  });
   const csv = '\ufeff' + [headers, ...rows]
     .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
@@ -608,7 +616,13 @@ function exportCsv() {
   anchor.download = `投递记录_${today()}.csv`;
   anchor.click();
   URL.revokeObjectURL(url);
+  csvExportModalOpen.value = false;
   showToast('CSV 已导出');
+}
+
+function openCsvExport() {
+  exportCsvNotes.value = true;
+  csvExportModalOpen.value = true;
 }
 
 function openJsonExport() {
@@ -779,7 +793,7 @@ async function importJson(event) {
             <button type="button" class="button button-quiet" @click="optionsModalOpen = true">
               <Settings :size="16" />选项设置
             </button>
-            <button type="button" class="button button-quiet" @click="exportCsv">
+            <button type="button" class="button button-quiet" @click="openCsvExport">
               <Download :size="16" />导出 CSV
             </button>
             <button type="button" class="button button-quiet" @click="openJsonExport">
@@ -891,6 +905,31 @@ async function importJson(event) {
     @close="optionsModalOpen = false"
     @save="saveOptions"
   />
+
+  <div v-if="csvExportModalOpen" class="modal-backdrop" @click.self="csvExportModalOpen = false">
+    <section class="modal modal-export-csv" role="dialog" aria-modal="true" aria-labelledby="csv-export-title">
+      <header class="modal-head">
+        <h3 id="csv-export-title">导出 CSV</h3>
+        <button type="button" class="modal-close" title="关闭" aria-label="关闭 CSV 导出弹窗" @click="csvExportModalOpen = false">
+          <X :size="20" />
+        </button>
+      </header>
+      <form @submit.prevent="exportCsv">
+        <div class="data-export-options">
+          <label class="data-export-checkbox">
+            <input v-model="exportCsvNotes" type="checkbox" />
+            <span>包含备注列</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button" @click="csvExportModalOpen = false">取消</button>
+          <button type="submit" class="button primary">
+            <Download :size="17" />导出
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
 
   <div v-if="jsonExportModalOpen" class="modal-backdrop" @click.self="jsonExportModalOpen = false">
     <section class="modal modal-export-json" role="dialog" aria-modal="true" aria-labelledby="json-export-title">

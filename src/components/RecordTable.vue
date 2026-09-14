@@ -255,93 +255,109 @@ function hideRecruitmentTooltip() {
       <tbody>
         <tr v-for="{ record, statusEvents, statusEvent, statusQueryLink, actionLink, actionLabel } in recordRows" :key="record.id">
           <td class="company-column">
-            <div class="company">{{ record.company }}</div>
-            <div class="position">{{ record.position }}</div>
+            <div class="table-cell-content">
+              <div class="company">{{ record.company }}</div>
+              <div class="position">{{ record.position }}</div>
+            </div>
           </td>
           <td>
-            <div>{{ sourceLabel(record) }}</div>
-            <button
-              type="button"
-              class="markdown-entry-button"
-              :class="{ 'has-recruitment-preview': hasRecruitmentPreview(record) }"
-              @click="emit('markdown', record)"
-              @mouseenter="showRecruitmentTooltip($event, record)"
-              @mouseleave="hideRecruitmentTooltip"
-              @focus="showRecruitmentTooltip($event, record)"
-              @blur="hideRecruitmentTooltip"
-            >
-              <FileText :size="15" />{{ record.link ? '招聘信息' : '添加信息' }}
-            </button>
-            <a
-              v-if="isWebLink(statusQueryLink)"
-              class="application-status-query-button"
-              :href="statusQueryLink"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink :size="15" />查询官网状态
-            </a>
+            <div class="table-cell-content">
+              <div>{{ sourceLabel(record) }}</div>
+              <button
+                type="button"
+                class="markdown-entry-button"
+                :class="{ 'has-recruitment-preview': hasRecruitmentPreview(record) }"
+                @click="emit('markdown', record)"
+                @mouseenter="showRecruitmentTooltip($event, record)"
+                @mouseleave="hideRecruitmentTooltip"
+                @focus="showRecruitmentTooltip($event, record)"
+                @blur="hideRecruitmentTooltip"
+              >
+                <FileText :size="15" />{{ record.link ? '招聘信息' : '添加信息' }}
+              </button>
+              <a
+                v-if="isWebLink(statusQueryLink)"
+                class="application-status-query-button"
+                :href="statusQueryLink"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink :size="15" />查询官网状态
+              </a>
+            </div>
           </td>
           <td class="application-time-cell application-time-column">
-            <div>{{ formatDateTime(applicationTimeForRecord(record)) }}</div>
+            <div class="table-cell-content">
+              <div>{{ formatDateTime(applicationTimeForRecord(record)) }}</div>
+            </div>
           </td>
           <td>
-            <span class="tag" :class="statusClass(record.status)">{{ record.status }}</span>
-            <div class="cell-note">{{ record.statusHistory?.length || 0 }} 个节点</div>
+            <div class="table-cell-content">
+              <span class="tag" :class="statusClass(record.status)">{{ record.status }}</span>
+              <div class="cell-note">{{ record.statusHistory?.length || 0 }} 个节点</div>
+            </div>
           </td>
           <td>
-            <div v-if="record.nextStep" class="next-step">{{ record.nextStep }}</div>
-            <template v-if="statusEvents.length">
-              <div v-for="event in statusEvents" :key="event.id" class="status-event">
-                <div class="status-event-summary">
-                  {{ event.label }} · {{ formatDateTime(event.date) }}
+            <div class="table-cell-content">
+              <div v-if="record.nextStep" class="next-step">{{ record.nextStep }}</div>
+              <template v-if="statusEvents.length">
+                <div v-for="event in statusEvents" :key="event.id" class="status-event">
+                  <div class="status-event-summary">
+                    {{ event.label }} · {{ formatDateTime(event.date) }}
+                  </div>
+                  <div
+                    v-if="statusCountdown(event.date)"
+                    class="status-event-countdown"
+                    :class="new Date(event.date).getTime() >= clock ? 'upcoming' : 'past'"
+                  >
+                    {{ statusCountdown(event.date) }}
+                  </div>
+                  <div
+                    v-if="event.note"
+                    class="status-event-note"
+                    tabindex="0"
+                    aria-label="查看完整节点备注"
+                    @mouseenter="showNoteTooltip($event, event.note)"
+                    @mouseleave="hideNoteTooltip"
+                    @focus="showNoteTooltip($event, event.note)"
+                    @blur="hideNoteTooltip"
+                  >
+                    {{ event.note }}
+                  </div>
                 </div>
-                <div
-                  v-if="statusCountdown(event.date)"
-                  class="status-event-countdown"
-                  :class="new Date(event.date).getTime() >= clock ? 'upcoming' : 'past'"
-                >
-                  {{ statusCountdown(event.date) }}
-                </div>
-                <div
-                  v-if="event.note"
-                  class="status-event-note"
-                  tabindex="0"
-                  aria-label="查看完整节点备注"
-                  @mouseenter="showNoteTooltip($event, event.note)"
-                  @mouseleave="hideNoteTooltip"
-                  @focus="showNoteTooltip($event, event.note)"
-                  @blur="hideNoteTooltip"
-                >
-                  {{ event.note }}
-                </div>
+              </template>
+              <a
+                v-if="isWebLink(actionLink)"
+                class="interview-open-button table-interview-button"
+                :href="actionLink"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink :size="16" />{{ actionLabel }}
+              </a>
+              <div v-else-if="actionLink" class="cell-note">{{ actionLink }}</div>
+              <span v-if="!record.nextStep && !statusEvent && !actionLink" class="muted">—</span>
+            </div>
+          </td>
+          <td class="location-cell">
+            <div class="table-cell-content">{{ record.location || '—' }}</div>
+          </td>
+          <td class="priority-cell">
+            <div class="table-cell-content"><span :class="priorityClass(record.priority)">{{ record.priority || '—' }}</span></div>
+          </td>
+          <td>
+            <div class="table-cell-content table-cell-content--actions">
+              <div class="row-actions">
+                <button type="button" class="action-button history-action" title="修改投递状态" @click="emit('history', record)">
+                  <History :size="16" />修改状态
+                </button>
+                <button type="button" class="icon-button" title="编辑记录" aria-label="编辑记录" @click="emit('edit', record)">
+                  <Pencil :size="16" />
+                </button>
+                <button type="button" class="icon-button danger" title="删除记录" aria-label="删除记录" @click="emit('delete', record)">
+                  <Trash2 :size="16" />
+                </button>
               </div>
-            </template>
-            <a
-              v-if="isWebLink(actionLink)"
-              class="interview-open-button table-interview-button"
-              :href="actionLink"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink :size="16" />{{ actionLabel }}
-            </a>
-            <div v-else-if="actionLink" class="cell-note">{{ actionLink }}</div>
-            <span v-if="!record.nextStep && !statusEvent && !actionLink" class="muted">—</span>
-          </td>
-          <td class="location-cell">{{ record.location || '—' }}</td>
-          <td class="priority-cell"><span :class="priorityClass(record.priority)">{{ record.priority || '—' }}</span></td>
-          <td>
-            <div class="row-actions">
-              <button type="button" class="action-button history-action" title="修改投递状态" @click="emit('history', record)">
-                <History :size="16" />修改状态
-              </button>
-              <button type="button" class="icon-button" title="编辑记录" aria-label="编辑记录" @click="emit('edit', record)">
-                <Pencil :size="16" />
-              </button>
-              <button type="button" class="icon-button danger" title="删除记录" aria-label="删除记录" @click="emit('delete', record)">
-                <Trash2 :size="16" />
-              </button>
             </div>
           </td>
         </tr>
