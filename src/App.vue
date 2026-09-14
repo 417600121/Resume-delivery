@@ -608,7 +608,10 @@ function exportCsv() {
     return row;
   });
   const csv = '\ufeff' + [headers, ...rows]
-    .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+    .map((row) => row.map((value) => `"${String(value ?? '')
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\t/g, ' ')
+      .replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const anchor = document.createElement('a');
